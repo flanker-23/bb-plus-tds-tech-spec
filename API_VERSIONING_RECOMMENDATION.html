@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>BB+ TDS API Versioning Recommendation</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      line-height: 1.6;
+      color: #1f2933;
+      margin: 0;
+      padding: 24px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    h1, h2, h3, h4 {
+      color: #0b2239;
+      margin-top: 32px;
+    }
+    h1 {
+      border-bottom: 3px solid #3182ce;
+      padding-bottom: 12px;
+    }
+    h2 {
+      border-bottom: 1px solid #e4e7eb;
+      padding-bottom: 8px;
+    }
+    code, pre {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 13px;
+    }
+    pre {
+      background: #f5f7fa;
+      padding: 16px;
+      border: 1px solid #e4e7eb;
+      border-radius: 6px;
+      overflow-x: auto;
+    }
+    code {
+      background: #eef2f7;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    pre code {
+      background: none;
+      padding: 0;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 16px 0 24px 0;
+    }
+    th, td {
+      border: 1px solid #e4e7eb;
+      padding: 10px 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: #f0f4f8;
+      font-weight: 600;
+    }
+    tr:nth-child(even) {
+      background: #fafbfc;
+    }
+    .recommendation {
+      background: #ebf8ff;
+      border: 1px solid #90cdf4;
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin: 20px 0;
+    }
+    .recommendation h3, .recommendation h4 {
+      margin-top: 0;
+      color: #2b6cb0;
+    }
+    .warning {
+      background: #fffaf0;
+      border: 1px solid #fbd38d;
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin: 20px 0;
+    }
+    .warning h4 {
+      margin-top: 0;
+      color: #c05621;
+    }
+    .success {
+      background: #f0fff4;
+      border: 1px solid #9ae6b4;
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin: 20px 0;
+    }
+    .success h4 {
+      margin-top: 0;
+      color: #276749;
+    }
+    .danger {
+      background: #fff5f5;
+      border: 1px solid #feb2b2;
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin: 20px 0;
+    }
+    .danger h4 {
+      margin-top: 0;
+      color: #c53030;
+    }
+    .tag {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .tag-recommended { background: #c6f6d5; color: #276749; }
+    .tag-not-recommended { background: #fed7d7; color: #c53030; }
+    .tag-option { background: #e9d8fd; color: #553c9a; }
+    .pro { color: #276749; }
+    .con { color: #c53030; }
+    .flow-diagram {
+      background: #1a202c;
+      color: #e2e8f0;
+      padding: 20px;
+      border-radius: 8px;
+      font-family: ui-monospace, monospace;
+      font-size: 12px;
+      line-height: 1.4;
+      overflow-x: auto;
+      white-space: pre;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>BB+ TDS Integration: API Versioning Recommendation</h1>
+
+  <p><strong>Date:</strong> February 2026</p>
+  <p><strong>Author:</strong> Architecture Review</p>
+  <p><strong>Status:</strong> Draft for Discussion</p>
+
+  <hr>
+
+  <h2>1. Executive Summary</h2>
+
+  <div class="recommendation">
+    <h3>Recommendation: Extend Existing /v2/payouts (No New Version)</h3>
+    <p>Based on analysis of the current architecture, public API documentation, and UI flows,
+    we recommend <strong>extending the existing internal /v2/payouts API</strong> with optional TDS fields
+    rather than creating a new API version.</p>
+    <ul>
+      <li><strong>No v3 API needed</strong> - TDS fields are already internal-only</li>
+      <li><strong>Backward compatible</strong> - All new fields are optional</li>
+      <li><strong>Minimal Payouts changes</strong> - Pre-compute pattern keeps logic in Tax-Compliance</li>
+      <li><strong>Works for all channels</strong> - UI, Bulk, and future API exposure</li>
+    </ul>
+  </div>
+
+  <hr>
+
+  <h2>2. Current API Landscape</h2>
+
+  <h3>2.1 Public API: /v1/payouts</h3>
+  <p>Documented at <code>razorpay.com/docs/api/x/payouts/</code></p>
+
+  <pre><code>POST /v1/payouts
+{
+  "account_number": "7878780080316316",    // Merchant's RazorpayX account
+  "fund_account_id": "fa_00000000000001",  // Beneficiary
+  "amount": 1000000,                        // NET amount in paise
+  "currency": "INR",
+  "mode": "IMPS",
+  "purpose": "vendor bill",
+  "queue_if_low_balance": true,
+  "reference_id": "...",
+  "narration": "...",
+  "notes": { }
+}</code></pre>
+
+  <p><strong>No TDS fields documented.</strong> This API is used by external merchants via API integration.</p>
+
+  <h3>2.2 Internal API: /v2/payouts</h3>
+  <p>Used by Dashboard, BFF, and internal services. Has additional fields:</p>
+
+  <pre><code>POST /v2/payouts
+{
+  "fund_account_id": "fa_xxx",
+  "amount": 900000,                         // NET amount
+  "currency": "INR",
+  "mode": "IMPS",
+  "purpose": "vendor bill",
+
+  // TDS fields (internal, used by Vendor-Payments)
+  "tds": {
+    "category_id": 14,                      // Numeric category ID
+    "amount": 100000                        // Pre-computed TDS amount
+  },
+  "subtotal_amount": 1000000,               // Gross amount
+  "remitter_details": {
+    "merchant_name": "Acme Corp",
+    "merchant_pan": "ABCDE1234F"
+  },
+  "attachments": [...]
+}</code></pre>
+
+  <h3>2.3 UI Flow Analysis (From Screenshots)</h3>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Current Flow (Vendor-Payments)</th>
+        <th>New Flow (BB+ TDS)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>
+          <ol>
+            <li>Select Contact</li>
+            <li>Enter Gross Amount</li>
+            <li>Select "TDS Deduction" option</li>
+            <li>System shows TDS details</li>
+            <li>Confirm payout</li>
+          </ol>
+        </td>
+        <td>
+          <ol>
+            <li>Select Contact</li>
+            <li>Enter Amount (₹100)</li>
+            <li>Toggle "TDS Deduction"</li>
+            <li>Select Category: "Payment to contractors" (194C - 10%)</li>
+            <li>System computes: TDS = ₹10, Net = ₹90</li>
+            <li>Preview and confirm</li>
+          </ol>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <hr>
+
+  <h2>3. API Versioning Options</h2>
+
+  <h3>3.1 Option A: Create New /v3/payouts API</h3>
+  <span class="tag tag-not-recommended">Not Recommended</span>
+
+  <pre><code>POST /v3/payouts
+{
+  "fund_account_id": "fa_xxx",
+  "gross_amount": 1000000,                  // NEW: Gross amount
+  "currency": "INR",
+  "mode": "IMPS",
+  "purpose": "vendor bill",
+
+  "tds": {
+    "category": "194C",                     // Category code
+    "source": "bb_plus",                    // Source indicator
+    "is_ldc_applicable": true               // LDC flag
+  }
+  // net_amount computed by Payouts internally
+}</code></pre>
+
+  <div class="danger">
+    <h4>Problems with v3 Approach</h4>
+    <ul>
+      <li><strong>Breaking change:</strong> <code>amount</code> → <code>gross_amount</code> semantic change</li>
+      <li><strong>Payouts computes TDS:</strong> Requires S2S call to Tax-Compliance in critical path</li>
+      <li><strong>Domain leakage:</strong> Payouts must understand TDS computation</li>
+      <li><strong>Maintenance burden:</strong> Three API versions to maintain (v1, v2, v3)</li>
+      <li><strong>Migration cost:</strong> Dashboard/BFF must migrate to v3</li>
+      <li><strong>Latency:</strong> Adds 50-200ms to payout creation</li>
+    </ul>
+  </div>
+
+  <h3>3.2 Option B: Extend /v2/payouts with Optional TDS Fields</h3>
+  <span class="tag tag-recommended">Recommended</span>
+
+  <pre><code>POST /v2/payouts
+{
+  "fund_account_id": "fa_xxx",
+  "amount": 900000,                         // NET amount (caller computes)
+  "currency": "INR",
+  "mode": "IMPS",
+  "purpose": "vendor bill",
+
+  "tds": {
+    // Existing fields (Vendor-Payments)
+    "category_id": 14,
+    "amount": 100000,
+
+    // NEW: BB+ fields (all optional)
+    "source": "bb_plus",                    // Routing indicator
+    "gross_amount": 1000000,                // For audit trail
+    "breakdown": {                          // From compute response
+      "basic_tax_amount": 90000,
+      "surcharge": 0,
+      "cess": 10000,
+      "effective_rate": 10.0,
+      "category_code": "194C",
+      "is_ldc_applied": false
+    }
+  }
+}</code></pre>
+
+  <div class="success">
+    <h4>Benefits of Extension Approach</h4>
+    <ul>
+      <li><strong>Backward compatible:</strong> All new fields optional</li>
+      <li><strong>No semantic change:</strong> <code>amount</code> remains NET</li>
+      <li><strong>No S2S call:</strong> Caller pre-computes TDS</li>
+      <li><strong>Domain separation:</strong> Tax-Compliance owns computation</li>
+      <li><strong>Minimal changes:</strong> Just add optional fields + topic routing</li>
+      <li><strong>Single API:</strong> No new version to maintain</li>
+    </ul>
+  </div>
+
+  <h3>3.3 Option C: Separate /v1/tds/payouts API (Tax-Compliance Owns)</h3>
+  <span class="tag tag-option">Alternative</span>
+
+  <pre><code>// Tax-Compliance API
+POST /v1/tds/payouts
+{
+  "fund_account_id": "fa_xxx",
+  "gross_amount": 1000000,
+  "category": "194C",
+  "is_ldc_applicable": true,
+  "mode": "IMPS",
+  "purpose": "vendor bill"
+}
+
+// Tax-Compliance:
+// 1. Computes TDS
+// 2. Calls Payouts /v2/payouts internally
+// 3. Returns combined response</code></pre>
+
+  <div class="warning">
+    <h4>Considerations</h4>
+    <ul>
+      <li class="pro"><strong>Pro:</strong> Clean separation - Tax-Compliance is single entry point</li>
+      <li class="pro"><strong>Pro:</strong> TDS Payment created synchronously</li>
+      <li class="con"><strong>Con:</strong> Tax-Compliance becomes payout orchestrator (domain leakage)</li>
+      <li class="con"><strong>Con:</strong> Complex for bulk payouts</li>
+      <li class="con"><strong>Con:</strong> Tight coupling - Tax-Compliance depends on Payouts API</li>
+    </ul>
+  </div>
+
+  <hr>
+
+  <h2>4. Detailed Recommendation</h2>
+
+  <h3>4.1 Extend /v2/payouts (No New Version)</h3>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Aspect</th>
+        <th>Decision</th>
+        <th>Rationale</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>API Version</td>
+        <td>Keep /v2/payouts</td>
+        <td>TDS is internal; no public API change needed</td>
+      </tr>
+      <tr>
+        <td>Amount Semantics</td>
+        <td><code>amount</code> = NET</td>
+        <td>Consistent with existing behavior; caller sends net</td>
+      </tr>
+      <tr>
+        <td>TDS Computation</td>
+        <td>Pre-compute (caller calls Tax-Compliance first)</td>
+        <td>No S2S call in payout creation; domain separation</td>
+      </tr>
+      <tr>
+        <td>New TDS Fields</td>
+        <td>All optional</td>
+        <td>Backward compatible; Vendor-Payments unchanged</td>
+      </tr>
+      <tr>
+        <td>Kafka Routing</td>
+        <td>Based on <code>tds.source</code></td>
+        <td>BB+ → Tax-Compliance; Others → Vendor-Payments</td>
+      </tr>
+      <tr>
+        <td>Public API (/v1)</td>
+        <td>Unchanged</td>
+        <td>External merchants don't use TDS (yet)</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>4.2 TDSDetails Field Extension</h3>
+
+  <pre><code>// internal/app/dtos/payoutDetails.go
+
+type TDSDetails struct {
+    // ═══════════════════════════════════════════════════════════
+    // EXISTING FIELDS (Vendor-Payments - unchanged)
+    // ═══════════════════════════════════════════════════════════
+    TDSCategoryID nulls.UInt32  `json:"category_id" binding:"omitempty"`
+    TDSAmount     nulls.Float64 `json:"amount" binding:"omitempty"`
+
+    // ═══════════════════════════════════════════════════════════
+    // NEW FIELDS (BB+ - all optional, pre-computed by caller)
+    // ═══════════════════════════════════════════════════════════
+
+    // Routing indicator: "bb_plus" routes to Tax-Compliance topic
+    Source string `json:"source" binding:"omitempty"`
+
+    // Gross amount for audit trail (amount field is NET)
+    GrossAmount nulls.Int64 `json:"gross_amount" binding:"omitempty"`
+
+    // Full breakdown from Tax-Compliance compute response
+    Breakdown *TDSBreakdown `json:"breakdown" binding:"omitempty"`
+}
+
+type TDSBreakdown struct {
+    BasicTaxAmount float64 `json:"basic_tax_amount"`
+    Surcharge      float64 `json:"surcharge"`
+    Cess           float64 `json:"cess"`
+    EffectiveRate  float64 `json:"effective_rate"`
+    CategoryCode   string  `json:"category_code"`    // "194C"
+    IsLdcApplied   bool    `json:"is_ldc_applied"`
+    LdcRate        float64 `json:"ldc_rate,omitempty"`
+    MajorHead      int     `json:"major_head"`
+    MinorHead      int     `json:"minor_head"`
+}
+
+// IsBBPlusFlow returns true if this is a BB+ TDS payout
+func (t *TDSDetails) IsBBPlusFlow() bool {
+    return t.Source == "bb_plus"
+}</code></pre>
+
+  <h3>4.3 Kafka Topic Routing</h3>
+
+  <pre><code>// internal/app/payouts/core.go
+
+const (
+    TdsTopic       = "add-tds-entry"          // Existing → Vendor-Payments
+    TdsTopicBBPlus = "add-tds-entry-bb-plus"  // NEW → Tax-Compliance
+)
+
+func (c Core) ProcessTdsForPayout(ctx context.Context, payout *Payout, oldStatus string) errors.IError {
+    if MoneyTransferredStatus[payout.GetStatus()] {
+        payoutDetails := payout.GetPayoutDetails(ctx)
+        additionalInfo := payoutDetails.GetAdditionalInfo()
+
+        // ════════════════════════════════════════════════════
+        // ONLY CHANGE: Route based on source
+        // ════════════════════════════════════════════════════
+        topic := TdsTopic
+        if additionalInfo.GetTDSSource() == "bb_plus" {
+            topic = TdsTopicBBPlus
+        }
+
+        message := c.buildTdsMessage(ctx, payout, payoutDetails, additionalInfo)
+        eventClient := provider.GetEventClient(ctx)
+        eventClient.PublishEvent(message, topic)
+    }
+    return nil
+}</code></pre>
+
+  <hr>
+
+  <h2>5. Flow by Channel</h2>
+
+  <h3>5.1 BB+ Dashboard - Single Payout</h3>
+
+  <div class="flow-diagram">
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ BB+ DASHBOARD SINGLE PAYOUT FLOW                                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  ┌──────────┐                                                               │
+│  │   USER   │                                                               │
+│  └────┬─────┘                                                               │
+│       │ 1. Select Contact                                                   │
+│       │ 2. Enter Amount: ₹100                                               │
+│       │ 3. Toggle "TDS Deduction"                                           │
+│       │ 4. Select Category: "Payment to contractors" (194C)                 │
+│       ▼                                                                      │
+│  ┌──────────┐     POST /v1/tds/compute      ┌────────────────┐              │
+│  │    BFF   │ ─────────────────────────────▶│ TAX-COMPLIANCE │              │
+│  │          │     {                         │                │              │
+│  │          │       merchant_id,            │  - Lookup rate │              │
+│  │          │       contact_id,             │  - Check LDC   │              │
+│  │          │       category: "194C",       │  - Compute     │              │
+│  │          │       gross_amount: 10000     │                │              │
+│  │          │     }                         └───────┬────────┘              │
+│  │          │                                       │                        │
+│  │          │ ◀─────────────────────────────────────┘                        │
+│  │          │     {                                                          │
+│  │          │       tds_amount: 1000,                                        │
+│  │          │       net_amount: 9000,                                        │
+│  │          │       category_id: 14,                                         │
+│  │          │       effective_rate: 10.0,                                    │
+│  │          │       breakdown: { basic: 900, cess: 100 }                     │
+│  │          │     }                                                          │
+│  └────┬─────┘                                                               │
+│       │                                                                      │
+│       │ 5. Display Preview:                                                  │
+│       │    "Gross: ₹100 | TDS (10%): ₹10 | Net Payout: ₹90"                 │
+│       │                                                                      │
+│       │ 6. User confirms with OTP                                            │
+│       ▼                                                                      │
+│  ┌──────────┐     POST /v2/payouts          ┌────────────────┐              │
+│  │    BFF   │ ─────────────────────────────▶│    PAYOUTS     │              │
+│  │          │     {                         │                │              │
+│  │          │       amount: 9000,           │  - Validate    │              │
+│  │          │       tds: {                  │  - Create      │              │
+│  │          │         category_id: 14,      │  - Store TDS   │              │
+│  │          │         amount: 1000,         │  - NO compute  │              │
+│  │          │         source: "bb_plus",    │                │              │
+│  │          │         gross_amount: 10000,  │                │              │
+│  │          │         breakdown: {...}      │                │              │
+│  │          │       }                       │                │              │
+│  │          │     }                         └───────┬────────┘              │
+│  │          │                                       │                        │
+│  │          │ ◀─────────────────────────────────────┘                        │
+│  │          │     { payout_id: "pout_xxx", status: "processing" }           │
+│  └──────────┘                                                               │
+│                                                                              │
+│  ═══════════════════════════════════════════════════════════════════════    │
+│  ASYNC: When payout reaches PROCESSED                                       │
+│  ═══════════════════════════════════════════════════════════════════════    │
+│                                                                              │
+│  ┌────────────────┐     add-tds-entry-bb-plus     ┌────────────────┐        │
+│  │    PAYOUTS     │ ─────────────────────────────▶│ TAX-COMPLIANCE │        │
+│  │                │     {                         │                │        │
+│  │ ProcessTds     │       payout_id,              │  - Create TDS  │        │
+│  │ ForPayout()    │       merchant_id,            │    Payment     │        │
+│  │                │       tds_amount,             │                │        │
+│  │ if source ==   │       category_id,            │                │        │
+│  │   "bb_plus"    │       breakdown: {...}        │                │        │
+│  │                │     }                         │                │        │
+│  └────────────────┘                               └────────────────┘        │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+  </div>
+
+  <h3>5.2 BB+ Dashboard - Bulk Payouts</h3>
+
+  <div class="flow-diagram">
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ BB+ DASHBOARD BULK PAYOUT FLOW                                              │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  1. User downloads BB+ TDS CSV template                                      │
+│     Columns: fund_account_id | gross_amount | tds_category | mode | ...     │
+│                                                                              │
+│  2. User fills CSV:                                                          │
+│     fa_001 | 10000 | 194C | IMPS                                            │
+│     fa_002 | 50000 | 194J | NEFT                                            │
+│     fa_003 | 25000 | 194C | IMPS                                            │
+│                                                                              │
+│  3. User uploads CSV to Dashboard                                            │
+│                                                                              │
+│  4. Dashboard/BFF processes:                                                 │
+│     ┌─────────────────────────────────────────────────────────────────┐     │
+│     │ FOR EACH ROW:                                                   │     │
+│     │   POST /v1/tds/compute → Tax-Compliance                         │     │
+│     │   Get: { tds_amount, net_amount, breakdown }                    │     │
+│     └─────────────────────────────────────────────────────────────────┘     │
+│                                                                              │
+│  5. Generate PREVIEW FILE:                                                   │
+│     ┌───────────────────────────────────────────────────────────────┐       │
+│     │ fund_account_id | gross | category | tds_amt | net   | rate  │       │
+│     │ fa_001          | 10000 | 194C     | 100     | 9900  | 1%    │       │
+│     │ fa_002          | 50000 | 194J     | 5000    | 45000 | 10%   │       │
+│     │ fa_003          | 25000 | 194C     | 250     | 24750 | 1%    │       │
+│     │─────────────────────────────────────────────────────────────  │       │
+│     │ TOTAL           | 85000 |          | 5350    | 79650 |       │       │
+│     └───────────────────────────────────────────────────────────────┘       │
+│                                                                              │
+│  6. User reviews preview and confirms with OTP                               │
+│                                                                              │
+│  7. Dashboard creates batch:                                                 │
+│     ┌─────────────────────────────────────────────────────────────────┐     │
+│     │ FOR EACH ROW:                                                   │     │
+│     │   POST /v2/payouts {                                            │     │
+│     │     amount: <net_amount>,                                       │     │
+│     │     tds: {                                                      │     │
+│     │       category_id, amount, source: "bb_plus",                   │     │
+│     │       gross_amount, breakdown                                   │     │
+│     │     }                                                           │     │
+│     │   }                                                             │     │
+│     └─────────────────────────────────────────────────────────────────┘     │
+│                                                                              │
+│  8. Each payout follows single payout async flow                             │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+  </div>
+
+  <h3>5.3 Future: Public API Exposure</h3>
+
+  <p>If/when TDS support is needed for public API merchants:</p>
+
+  <pre><code>// FUTURE: Public API with TDS (if needed)
+POST /v1/payouts
+{
+  "account_number": "...",
+  "fund_account_id": "fa_xxx",
+  "amount": 9000,                           // NET amount
+  "currency": "INR",
+  "mode": "IMPS",
+  "purpose": "vendor bill",
+
+  // NEW: Optional TDS block (public)
+  "tds": {
+    "category_id": 14,
+    "amount": 1000
+  }
+}</code></pre>
+
+  <p>This would be a <strong>non-breaking additive change</strong> - just expose the existing internal field publicly.</p>
+
+  <hr>
+
+  <h2>6. Changes Summary</h2>
+
+  <h3>6.1 Payouts Service (Minimal)</h3>
+
+  <table>
+    <thead>
+      <tr>
+        <th>File</th>
+        <th>Change</th>
+        <th>Risk</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>dtos/payoutDetails.go</code></td>
+        <td>Add <code>Source</code>, <code>GrossAmount</code>, <code>Breakdown</code> to TDSDetails</td>
+        <td>Low</td>
+      </tr>
+      <tr>
+        <td><code>payoutDetails/additional_info_model.go</code></td>
+        <td>Add BB+ fields to AdditionalInfoStruct</td>
+        <td>Low</td>
+      </tr>
+      <tr>
+        <td><code>payouts/constants.go</code></td>
+        <td>Add <code>TdsTopicBBPlus</code> constant</td>
+        <td>None</td>
+      </tr>
+      <tr>
+        <td><code>payouts/core.go</code></td>
+        <td>Topic routing in <code>ProcessTdsForPayout()</code></td>
+        <td>Low</td>
+      </tr>
+      <tr>
+        <td><code>processor/base.go</code></td>
+        <td>Store BB+ fields in <code>SetPayoutDetailsInPayout()</code></td>
+        <td>Low</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p><strong>NO changes to:</strong></p>
+  <ul>
+    <li><code>CreatePayoutToFundAccountV2()</code> core logic</li>
+    <li>Amount handling or validation</li>
+    <li>Processor flow</li>
+    <li>Any S2S calls</li>
+    <li>Public /v1/payouts API</li>
+  </ul>
+
+  <h3>6.2 Tax-Compliance Service</h3>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Component</th>
+        <th>Change</th>
+        <th>Effort</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>New endpoint</td>
+        <td><code>POST /v1/tds/compute</code></td>
+        <td>Medium</td>
+      </tr>
+      <tr>
+        <td>TDS rate lookup</td>
+        <td>Category → rate mapping</td>
+        <td>Medium</td>
+      </tr>
+      <tr>
+        <td>LDC integration</td>
+        <td>Auto-apply LDC rate reduction</td>
+        <td>Medium</td>
+      </tr>
+      <tr>
+        <td>Kafka consumer</td>
+        <td>Consume <code>add-tds-entry-bb-plus</code></td>
+        <td>Medium</td>
+      </tr>
+      <tr>
+        <td>TDS Payment creation</td>
+        <td>Create record from Kafka message</td>
+        <td>Low</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>6.3 Dashboard/BFF</h3>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Component</th>
+        <th>Change</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>TDS compute call</td>
+        <td>Call <code>/v1/tds/compute</code> before payout</td>
+      </tr>
+      <tr>
+        <td>Preview display</td>
+        <td>Show computed TDS breakdown</td>
+      </tr>
+      <tr>
+        <td>Payout creation</td>
+        <td>Pass pre-computed TDS to <code>/v2/payouts</code></td>
+      </tr>
+      <tr>
+        <td>Bulk CSV template</td>
+        <td>Add <code>gross_amount</code>, <code>tds_category</code> columns</td>
+      </tr>
+      <tr>
+        <td>Bulk processing</td>
+        <td>Compute per row → preview → batch create</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <hr>
+
+  <h2>7. Decision Matrix</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Criteria</th>
+        <th>New v3 API</th>
+        <th>Extend v2 (Recommended)</th>
+        <th>Tax-Compliance Orchestrated</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Payouts code changes</td>
+        <td class="con">High</td>
+        <td class="pro">Low</td>
+        <td class="pro">None</td>
+      </tr>
+      <tr>
+        <td>S2S call in payout creation</td>
+        <td class="con">Yes</td>
+        <td class="pro">No</td>
+        <td class="con">Yes (reversed)</td>
+      </tr>
+      <tr>
+        <td>Latency impact</td>
+        <td class="con">+50-200ms</td>
+        <td class="pro">0ms</td>
+        <td class="con">+50-200ms</td>
+      </tr>
+      <tr>
+        <td>Domain separation</td>
+        <td class="con">Leaks to Payouts</td>
+        <td class="pro">Clean</td>
+        <td class="con">Leaks to Tax-Compliance</td>
+      </tr>
+      <tr>
+        <td>Backward compatible</td>
+        <td class="con">No (new version)</td>
+        <td class="pro">Yes</td>
+        <td class="pro">Yes</td>
+      </tr>
+      <tr>
+        <td>Bulk payouts</td>
+        <td class="con">Complex</td>
+        <td class="pro">Simple</td>
+        <td class="con">Complex</td>
+      </tr>
+      <tr>
+        <td>Future public API</td>
+        <td class="pro">Ready</td>
+        <td class="pro">Easy to add</td>
+        <td class="con">Separate path</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <hr>
+
+  <h2>8. Conclusion</h2>
+
+  <div class="recommendation">
+    <h3>Final Recommendation: Extend /v2/payouts</h3>
+    <ol>
+      <li><strong>No new API version</strong> - Extend existing /v2/payouts with optional TDS fields</li>
+      <li><strong>Pre-compute pattern</strong> - BFF/Dashboard calls Tax-Compliance compute first</li>
+      <li><strong>Payouts stores only</strong> - No computation logic in Payouts</li>
+      <li><strong>Topic routing</strong> - <code>tds.source = "bb_plus"</code> → Tax-Compliance Kafka topic</li>
+      <li><strong>Public API unchanged</strong> - /v1/payouts remains as-is (for now)</li>
+    </ol>
+    <p>This approach provides:</p>
+    <ul>
+      <li>Minimal risk to high-throughput Payouts API</li>
+      <li>Clean domain separation</li>
+      <li>Works for UI, Bulk, and future API exposure</li>
+      <li>Backward compatible with Vendor-Payments flow</li>
+    </ul>
+  </div>
+
+  <hr>
+
+  <p><em>Document Version: 1.0 | February 2026</em></p>
+
+</body>
+</html>

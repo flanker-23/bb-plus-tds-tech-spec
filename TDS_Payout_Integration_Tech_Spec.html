@@ -1,0 +1,5370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>TDS Payout Integration - Technical Specification</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      line-height: 1.6;
+      color: #1f2933;
+      margin: 0;
+      padding: 24px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    h1, h2, h3, h4 {
+      color: #0b2239;
+      margin-top: 32px;
+    }
+    h1 {
+      border-bottom: 3px solid #3182ce;
+      padding-bottom: 12px;
+    }
+    h2 {
+      border-bottom: 1px solid #e4e7eb;
+      padding-bottom: 8px;
+    }
+    code, pre {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 13px;
+    }
+    pre {
+      background: #f5f7fa;
+      padding: 16px;
+      border: 1px solid #e4e7eb;
+      border-radius: 6px;
+      overflow-x: auto;
+    }
+    code {
+      background: #eef2f7;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    pre code {
+      background: none;
+      padding: 0;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 16px 0 24px 0;
+    }
+    th, td {
+      border: 1px solid #e4e7eb;
+      padding: 10px 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: #f0f4f8;
+      font-weight: 600;
+    }
+    tr:nth-child(even) {
+      background: #fafbfc;
+    }
+    .muted {
+      color: #52606d;
+    }
+    .tag {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .tag-post { background: #bee3f8; color: #2b6cb0; }
+    .tag-get { background: #c6f6d5; color: #276749; }
+    .pro { color: #276749; }
+    .con { color: #c53030; }
+    .recommendation {
+      background: #ebf8ff;
+      border: 1px solid #90cdf4;
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin: 20px 0;
+    }
+    .recommendation h3, .recommendation h4 {
+      margin-top: 0;
+      color: #2b6cb0;
+    }
+    .warning {
+      background: #fffaf0;
+      border: 1px solid #fbd38d;
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin: 20px 0;
+    }
+    .warning h4 {
+      margin-top: 0;
+      color: #c05621;
+    }
+    .info {
+      background: #e6fffa;
+      border: 1px solid #81e6d9;
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin: 20px 0;
+    }
+    .info h4 {
+      margin-top: 0;
+      color: #285e61;
+    }
+    .flow-diagram {
+      background: #1a202c;
+      color: #e2e8f0;
+      padding: 20px;
+      border-radius: 8px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.4;
+      overflow-x: auto;
+      white-space: pre;
+    }
+    .entity-map {
+      background: #f7fafc;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+    .entity-map h4 {
+      margin-top: 0;
+      color: #2d3748;
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 8px;
+    }
+    .entity-box {
+      display: inline-block;
+      background: #fff;
+      border: 2px solid #4299e1;
+      border-radius: 6px;
+      padding: 8px 12px;
+      margin: 4px;
+      font-size: 13px;
+    }
+    .entity-box.new {
+      border-color: #48bb78;
+      background: #f0fff4;
+    }
+    .entity-box.updated {
+      border-color: #ed8936;
+      background: #fffaf0;
+    }
+    .toc {
+      background: #f7fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+    .toc h3 {
+      margin-top: 0;
+    }
+    .toc ul {
+      margin: 0;
+      padding-left: 20px;
+    }
+    .toc li {
+      margin: 6px 0;
+    }
+    .toc a {
+      color: #3182ce;
+      text-decoration: none;
+    }
+    .toc a:hover {
+      text-decoration: underline;
+    }
+
+    /* Flow Diagram Styles */
+    .flow-container {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 30px;
+      margin: 24px 0;
+      overflow-x: auto;
+    }
+    .flow-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #1a202c;
+      margin-bottom: 24px;
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .flow-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      margin: 16px 0;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .flow-box {
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-weight: 600;
+      text-align: center;
+      min-width: 140px;
+      border: 2px solid;
+      position: relative;
+    }
+    .flow-box.frontend {
+      background: #f3e8ff;
+      border-color: #9333ea;
+      color: #581c87;
+    }
+    .flow-box.bff {
+      background: #fce7f3;
+      border-color: #db2777;
+      color: #831843;
+    }
+    .flow-box.tax-compliance {
+      background: #dbeafe;
+      border-color: #2563eb;
+      color: #1e3a8a;
+    }
+    .flow-box.payouts {
+      background: #dcfce7;
+      border-color: #16a34a;
+      color: #14532d;
+    }
+    .flow-box.kafka {
+      background: #ffedd5;
+      border-color: #ea580c;
+      color: #7c2d12;
+    }
+    .flow-box.database {
+      background: #f1f5f9;
+      border-color: #64748b;
+      color: #334155;
+    }
+    .flow-box-fields {
+      font-size: 11px;
+      font-weight: 400;
+      margin-top: 8px;
+      text-align: left;
+      background: rgba(255,255,255,0.7);
+      padding: 8px;
+      border-radius: 4px;
+      font-family: ui-monospace, monospace;
+      line-height: 1.5;
+    }
+    .flow-box-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      opacity: 0.8;
+      margin-bottom: 4px;
+    }
+    .flow-box-name {
+      font-size: 15px;
+    }
+    .flow-arrow {
+      font-size: 28px;
+      color: #4a5568;
+      margin: 0 8px;
+    }
+    .flow-arrow-down {
+      font-size: 32px;
+      color: #4a5568;
+      text-align: center;
+      margin: 8px 0;
+    }
+    .flow-step {
+      background: white;
+      border: 3px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 20px;
+      margin: 16px 0;
+      position: relative;
+    }
+    .flow-step-number {
+      position: absolute;
+      top: -14px;
+      left: 20px;
+      background: #3182ce;
+      color: white;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 14px;
+    }
+    .flow-step-title {
+      font-weight: 700;
+      color: #2d3748;
+      margin-bottom: 8px;
+      margin-left: 20px;
+    }
+    .flow-step-desc {
+      color: #4a5568;
+      font-size: 14px;
+      margin-left: 20px;
+    }
+    .flow-step-api {
+      background: #edf2f7;
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-family: monospace;
+      font-size: 13px;
+      margin: 8px 0 8px 20px;
+      display: inline-block;
+    }
+    .flow-section {
+      border-left: 4px solid #3182ce;
+      padding-left: 20px;
+      margin: 20px 0;
+    }
+    .flow-section-title {
+      font-weight: 700;
+      color: #3182ce;
+      margin-bottom: 12px;
+      font-size: 14px;
+      text-transform: uppercase;
+    }
+    .flow-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      justify-content: center;
+      margin-bottom: 24px;
+      padding: 16px;
+      background: white;
+      border-radius: 8px;
+    }
+    .flow-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+    }
+    .flow-legend-color {
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+    }
+    .flow-connector {
+      width: 2px;
+      height: 30px;
+      background: #a0aec0;
+      margin: 0 auto;
+    }
+    .flow-connector-h {
+      width: 40px;
+      height: 2px;
+      background: #a0aec0;
+    }
+    .flow-group {
+      border: 2px dashed #cbd5e0;
+      border-radius: 12px;
+      padding: 20px;
+      margin: 16px 0;
+      background: rgba(255,255,255,0.5);
+    }
+    .flow-group-label {
+      font-size: 12px;
+      color: #718096;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+      font-weight: 600;
+    }
+    .state-flow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 16px 0;
+    }
+    .state-box {
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .state-box.pending { background: #fef3c7; color: #92400e; }
+    .state-box.created { background: #dbeafe; color: #1e40af; }
+    .state-box.processing { background: #e0e7ff; color: #3730a3; }
+    .state-box.success { background: #d1fae5; color: #065f46; }
+    .state-box.failed { background: #fee2e2; color: #991b1b; }
+    .version-info {
+      display: flex;
+      gap: 40px;
+      margin-bottom: 20px;
+    }
+    .version-info div {
+      display: flex;
+      gap: 8px;
+    }
+    .version-info span:first-child {
+      font-weight: 600;
+      color: #4a5568;
+    }
+    .approach-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .approach-badge {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .badge-recommended {
+      background: #c6f6d5;
+      color: #276749;
+    }
+    .badge-alternative {
+      background: #e2e8f0;
+      color: #4a5568;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #e2e8f0;
+      margin: 32px 0;
+    }
+    .state-table {
+      font-size: 13px;
+    }
+    .state-table td:first-child {
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .step-number {
+      display: inline-block;
+      width: 28px;
+      height: 28px;
+      background: #3182ce;
+      color: white;
+      border-radius: 50%;
+      text-align: center;
+      line-height: 28px;
+      font-weight: 600;
+      margin-right: 8px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>TDS Payout Integration - Technical Specification</h1>
+
+  <div class="version-info">
+    <div><span>Version:</span> <span>8.0</span></div>
+    <div><span>Author:</span> <span>Prashant Chauhan</span></div>
+    <div><span>Date:</span> <span>February 2026</span></div>
+  </div>
+
+  <p class="muted">
+    Technical specification for integrating TDS (Tax Deducted at Source) into the BB+ payout flow.
+    Three approaches analyzed: <strong>Approach 1</strong> (Payout API accepts TDS compute inputs, calls compute internally),
+    <strong>Approach 2</strong> (Tax-Compliance orchestrates TDS + Payout creation),
+    and <strong>Approach 3: Pre-Compute Pattern</strong> (BFF pre-computes, Payouts receives pre-computed values — <strong>RECOMMENDED</strong>).
+  </p>
+
+  <div class="recommendation">
+    <h3>Version 8.0 Update: All Review Issues Resolved</h3>
+    <p>After codebase analysis, architecture review, and comprehensive tech spec review, <strong>Approach 3 (Pre-Compute Pattern)</strong> is recommended. Version 8.0 adds:</p>
+    <ul>
+      <li><strong>NFRs defined</strong> — Performance targets, availability SLAs, throughput requirements (Section 14)</li>
+      <li><strong>Testing strategy</strong> — Unit, integration, e2e, and load testing plans (Section 15)</li>
+      <li><strong>Security considerations</strong> — PII handling, logging guidelines, access control (Section 16)</li>
+      <li><strong>Observability</strong> — Metrics, alerting rules, dashboards, tracing (Section 17)</li>
+      <li><strong>Error handling</strong> — Outbox pattern, idempotency, retry/DLQ, reconciliation (Section 18)</li>
+      <li><strong>All open questions resolved</strong> (Section 19)</li>
+    </ul>
+  </div>
+
+  <div class="toc">
+    <h3>Table of Contents</h3>
+    <ul>
+      <li><a href="#overview">1. Overview</a> (1.1–1.8)</li>
+      <li><a href="#approach-1">2. Approach 1: Extended TDS Field with Inline Compute</a> (Not Recommended)
+        <ul>
+          <li>2.1 Flow Diagram</li>
+          <li>2.2 Implementation Details</li>
+          <li>2.3 Pros and Cons</li>
+        </ul>
+      </li>
+      <li><a href="#approach-2">3. Approach 2: Pre-Create TDS Payment Entity</a> (Alternative)</li>
+      <li><a href="#approach-3">4. Approach 3: Pre-Compute Pattern</a> <strong>(RECOMMENDED)</strong>
+        <ul>
+          <li>4.1 Core Principle</li>
+          <li>4.2 Architecture &amp; Flow Diagram</li>
+          <li>4.3 API Design (No New Version)</li>
+          <li>4.4 Implementation Details</li>
+          <li>4.5 Pros and Cons</li>
+        </ul>
+      </li>
+      <li><a href="#comparison">5. Comparison</a></li>
+      <li><a href="#recommendation">6. Recommendation</a></li>
+      <li><a href="#api-contracts">7. API Contracts</a> (7.1 Compute, 7.2 Payout with TDS, 7.3 Tax-Compliance Orchestrated)</li>
+      <li><a href="#data-models">8. Data Models</a></li>
+      <li><a href="#review">9. Open Questions</a></li>
+      <li><a href="#bulk-payouts">10. Bulk Payout Considerations</a></li>
+      <li><a href="#code-references">11. Codebase Analysis &amp; Implementation Plan</a> (Updated for Approach 3)
+        <ul>
+          <li>11.1 Current State</li>
+          <li>11.2 Required Struct Changes (Minimal)</li>
+          <li>11.3 Kafka Topic Routing</li>
+          <li>11.4 PayoutDetails Storage</li>
+          <li>11.5 File Change Summary</li>
+        </ul>
+      </li>
+      <li><a href="#migration">12. Migration &amp; Rollout</a>
+        <ul>
+          <li>12.1 Feature Flag</li>
+          <li>12.2 Rollout Phases</li>
+          <li>12.3 Monitoring</li>
+          <li>12.4 Rollback Procedure</li>
+        </ul>
+      </li>
+      <li><a href="#reversal-handling">13. Payout Reversal Handling</a>
+        <ul>
+          <li>13.1 TDS Money Movement Timeline</li>
+          <li>13.2 Reversal Scenarios (3 Cases)</li>
+          <li>13.3 Implementation Details</li>
+          <li>13.4 Edge Cases</li>
+          <li>13.5 Ops Dashboard for Manual Recovery</li>
+          <li>13.6 Summary</li>
+        </ul>
+      </li>
+      <li><a href="#nfrs">14. Non-Functional Requirements (NFRs)</a>
+        <ul>
+          <li>14.1 Performance Requirements</li>
+          <li>14.2 Throughput Requirements</li>
+          <li>14.3 Availability Requirements</li>
+          <li>14.4 Data Retention</li>
+        </ul>
+      </li>
+      <li><a href="#testing">15. Testing Strategy</a>
+        <ul>
+          <li>15.1 Unit Tests</li>
+          <li>15.2 Integration Tests</li>
+          <li>15.3 End-to-End Tests</li>
+          <li>15.4 Load Testing</li>
+          <li>15.5 Rollback Testing</li>
+        </ul>
+      </li>
+      <li><a href="#security">16. Security Considerations</a>
+        <ul>
+          <li>16.1 PII Handling</li>
+          <li>16.2 Logging Guidelines</li>
+          <li>16.3 Kafka Message Security</li>
+          <li>16.4 Access Control</li>
+          <li>16.5 API Security</li>
+        </ul>
+      </li>
+      <li><a href="#observability">17. Observability & Monitoring</a>
+        <ul>
+          <li>17.1 Key Metrics</li>
+          <li>17.2 Alerting Rules</li>
+          <li>17.3 Dashboards</li>
+          <li>17.4 Tracing</li>
+        </ul>
+      </li>
+      <li><a href="#error-handling">18. Error Handling & Resilience</a>
+        <ul>
+          <li>18.1 Kafka Publishing Strategy (Outbox Pattern)</li>
+          <li>18.2 Kafka Consumer Resilience</li>
+          <li>18.3 Bulk Payout Failure Handling</li>
+          <li>18.4 Error Response Format</li>
+          <li>18.5 Reconciliation Job</li>
+        </ul>
+      </li>
+      <li><a href="#resolved-questions">19. Resolved Open Questions</a></li>
+    </ul>
+  </div>
+
+  <hr>
+
+  <h2 id="overview">1. Overview</h2>
+
+  <h3>1.1 Business Context</h3>
+  <p>
+    When a BB+ merchant creates a payout with TDS enabled:
+  </p>
+  <ul>
+    <li>Merchant enters <strong>gross amount</strong> (e.g., ₹10,000)</li>
+    <li>Selects <strong>TDS category</strong> (e.g., 194J - 10%)</li>
+    <li>Optionally marks <strong>LDC applicable</strong></li>
+    <li>System calculates TDS (₹1,000) and creates payout for <strong>net amount</strong> (₹9,000) to vendor</li>
+    <li>TDS is tracked for monthly filing and payment to government</li>
+  </ul>
+
+  <h3>1.2 Services Involved</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Service</th>
+        <th>Type</th>
+        <th>Role</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>UI/FE</strong></td>
+        <td>Frontend</td>
+        <td>Calls backend APIs, renders UI</td>
+      </tr>
+      <tr>
+        <td><strong>Tax-Compliance</strong></td>
+        <td>Backend Service</td>
+        <td>Computes TDS, manages TDS Payment entities, filing data, LDC certificates</td>
+      </tr>
+      <tr>
+        <td><strong>Payouts</strong></td>
+        <td>Backend Service</td>
+        <td>Creates payout, processes fund transfer, emits status updates</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h4>Architecture</h4>
+  <pre style="background: #f8f9fa; padding: 16px; border-radius: 8px; font-family: Consolas, Monaco, monospace;">
+[Merchant UI/FE] ---> [Tax-Compliance Service]  (Backend)
+[Merchant UI/FE] ---> [Payouts Service]         (Backend)
+
+Both Tax-Compliance and Payouts are backend services.
+UI/FE calls the APIs directly based on the chosen approach.
+  </pre>
+
+  <h3>1.3 Amount Field Relationship</h3>
+
+  <div class="info">
+    <h4>All amounts in paise. Rate in basis points (÷ 100 = %).</h4>
+    <pre><code>gross = net + tds
+
+Example: category 194J, rate 10%
+
+  vendor_payment_amount  = 1000000   (₹10,000)
+  rate_tds_deducted      = 1000 bp   (10%)
+  total_tds_amount       = 100000    (₹1,000)
+  payout.amount (net)    = 900000    (₹9,000)</code></pre>
+  </div>
+
+  <h3>1.4 Key Entities</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Entity</th>
+        <th>Service</th>
+        <th>Purpose</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>payout</code></td>
+        <td>Payouts</td>
+        <td>The payment to vendor (net amount)</td>
+      </tr>
+      <tr>
+        <td><code>payout_details</code></td>
+        <td>Payouts</td>
+        <td>Extended TDS information stored in additional_info JSON</td>
+      </tr>
+      <tr>
+        <td><code>tds_payment</code></td>
+        <td>Tax-Compliance</td>
+        <td>TDS record for filing (deductee PAN, amounts, category)</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3 id="current-functionality">1.5 Current Functionality (As-Is)</h3>
+
+  <h4>1.5.1 Payouts Service</h4>
+  <ul>
+    <li>Exposes <code>POST /v1/payouts</code> to create payouts and persists <code>payout</code> + <code>payout_details</code>.</li>
+    <li>Accepts a minimal <code>tds</code> object (amount, category_id) for existing flows.</li>
+    <li>Emits payout status updates on the existing Kafka topic (<code>payout-status-updates</code>).</li>
+    <li>Does not compute TDS; relies on caller for computed values.</li>
+  </ul>
+
+  <h4>1.5.2 Tax-Compliance Service</h4>
+  <ul>
+    <li>Exposes <code>POST /v1/tds/compute</code> for TDS calculation (basic tax, surcharge, cess).</li>
+    <li>Maintains <code>tds_payments</code> for filing and compliance.</li>
+    <li>Validates TDS category, PAN, and LDC eligibility.</li>
+    <li>Currently provides compute preview for BB+ UI flow without direct payout linkage.</li>
+  </ul>
+
+  <h4>1.5.3 Current BB+ TDS Flow (UI)</h4>
+  <ul>
+    <li>UI/FE calls Tax-Compliance compute for preview and displays net amount.</li>
+    <li>Payout created with net amount; only minimal TDS fields persisted in Payouts.</li>
+    <li>No automated TDS Payment creation or payout-status-driven updates for BB+ yet.</li>
+  </ul>
+
+  <h3 id="required-changes">1.6 Required Changes (By Service)</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Component</th>
+        <th>Approach 1 (Recommended)</th>
+        <th>Approach 2</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Payouts</strong></td>
+        <td>
+          Accept TDS compute inputs; call Tax-Compliance compute (S2S); derive net amount;
+          persist inputs + result in <code>payout_details</code>;
+          publish to <code>add-tds-entry-bb-plus</code> on terminal state
+        </td>
+        <td>
+          Accept <code>tds_payment_id</code> + minimal fields; store reference in <code>payout_details</code>;
+          use existing <code>payout-status-updates</code> topic
+        </td>
+      </tr>
+      <tr>
+        <td><strong>Tax-Compliance</strong></td>
+        <td>
+          Support S2S auth for compute API; consume <code>add-tds-entry-bb-plus</code>;
+          create/update <code>tds_payment</code> on payout status
+        </td>
+        <td>
+          New <code>/v1/tds/payout</code> orchestrator API; Payouts client + sync cancellation;
+          consume existing payout status topic
+        </td>
+      </tr>
+      <tr>
+        <td><strong>UI/FE / API</strong></td>
+        <td>
+          Calls compute for preview (UI only); same inputs forwarded to <code>POST /v1/payouts</code>
+        </td>
+        <td>
+          Calls <code>/v1/tds/payout</code> (single API to Tax-Compliance)
+        </td>
+      </tr>
+      <tr>
+        <td><strong>Kafka</strong></td>
+        <td>New topic: <code>add-tds-entry-bb-plus</code></td>
+        <td>Reuses: <code>payout-status-updates</code></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3 id="approach-coverage">1.7 Approach Coverage (UI vs API)</h3>
+  <table>
+    <thead>
+      <tr><th>Channel</th><th>Compute Trigger</th><th>Creation Flow</th><th>Recommended Approach</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>BB+ UI (Single Payout)</td>
+        <td>UI/FE → Tax-Compliance (external, for preview display only)</td>
+        <td>UI/FE → <code>POST /v1/payouts</code> (TDS compute inputs) → Payouts calls compute internally</td>
+        <td>Approach 1</td>
+      </tr>
+      <tr>
+        <td>BB+ Bulk Payout</td>
+        <td>Compute runs for all rows upfront → preview file generated for user to review before confirming</td>
+        <td>CSV with TDS input columns → compute per row → preview file → user confirms → Payouts creates payouts</td>
+        <td>Approach 1</td>
+      </tr>
+      <tr>
+        <td>Merchant API Integration</td>
+        <td>Payouts → Tax-Compliance (inline, S2S)</td>
+        <td>Merchant → <code>POST /v1/payouts</code> (TDS compute inputs) → same Approach 1 flow</td>
+        <td>Approach 1</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3 id="vendor-payments-isolation">1.8 Vendor-Payments Isolation (Non-Impact)</h3>
+  <div class="info">
+    <h4>Isolation Guarantee</h4>
+    <ul>
+      <li>The <code>tds</code> field is already used by Vendor-Payments; changes must not impact Vendor-Payments flows.</li>
+      <li>BB+ payouts must never be published to Vendor-Payments topics or processed by Vendor-Payments consumers.</li>
+      <li>All BB+ TDS events go only to <code>add-tds-entry-bb-plus</code>, consumed by Tax-Compliance.</li>
+      <li>Approach 2 uses <code>payout-status-updates</code>; Tax-Compliance ignores events without a matching <code>tds_payment</code>.</li>
+      <li>Non‑BB+ payouts continue on the existing Vendor-Payments path unchanged.</li>
+    </ul>
+  </div>
+
+  <hr>
+
+  <h2 id="approach-1">2. Approach 1: Extended TDS Field with Inline Compute (Post-Payout Processing)</h2>
+
+  <div class="approach-header">
+    <span class="approach-badge badge-alternative">Not Recommended</span>
+    <span class="muted">Payout API accepts TDS compute inputs; Payouts calls compute internally; async TDS entity creation</span>
+  </div>
+
+  <div class="warning">
+    <h4>Why This Approach is Not Recommended</h4>
+    <ul>
+      <li><strong>S2S call in critical path:</strong> Adds 50-200ms latency to every BB+ payout</li>
+      <li><strong>Failure coupling:</strong> If Tax-Compliance is down, payouts fail</li>
+      <li><strong>Domain leakage:</strong> Payouts must understand TDS computation logic</li>
+      <li><strong>Amount mutation:</strong> <code>params.Amount</code> gets overwritten from gross to net (high risk)</li>
+      <li><strong>Testing complexity:</strong> Need to mock Tax-Compliance in all payout tests</li>
+    </ul>
+    <p>See <strong>Approach 3 (Pre-Compute Pattern)</strong> for the recommended alternative.</p>
+  </div>
+
+  <div class="info" style="margin: 12px 0;">
+    <h4>How it works</h4>
+    <ul>
+      <li><strong>UI (single/bulk preview):</strong> UI calls <code>POST /v1/tds/compute</code> externally to show merchant the TDS breakdown (gross → TDS → net split). This call is <em>display-only</em>.</li>
+      <li><strong>All channels:</strong> TDS inputs in <code>tds</code> field; gross amount in top-level <code>amount</code>. merchant_id from auth context; contact_id from fund account or <code>tds.contact_id</code>.</li>
+      <li><strong>Inside Payouts:</strong> When TDS inputs are present, Payouts calls Tax-Compliance compute internally (S2S), stores both inputs and computed result in <code>payout_details</code>, and derives the net payout amount.</li>
+      <li><strong>Async TDS entity:</strong> On terminal payout state, Payouts publishes to <code>add-tds-entry-bb-plus</code>; Tax-Compliance creates the <code>tds_payment</code> record.</li>
+    </ul>
+  </div>
+
+  <h3>2.1 Flow Diagram</h3>
+
+  <div class="flow-container">
+    <div class="flow-title">Approach 1: Extend TDS Field (Post-Payout Processing)</div>
+
+    <!-- Legend -->
+    <div class="flow-legend">
+      <div class="flow-legend-item">
+        <div class="flow-legend-color" style="background: #f3e8ff; border: 2px solid #9333ea;"></div>
+        <span>UI/FE</span>
+      </div>
+      <div class="flow-legend-item">
+        <div class="flow-legend-color" style="background: #dbeafe; border: 2px solid #2563eb;"></div>
+        <span>Tax-Compliance</span>
+      </div>
+      <div class="flow-legend-item">
+        <div class="flow-legend-color" style="background: #dcfce7; border: 2px solid #16a34a;"></div>
+        <span>Payouts</span>
+      </div>
+      <div class="flow-legend-item">
+        <div class="flow-legend-color" style="background: #ffedd5; border: 2px solid #ea580c;"></div>
+        <span>Kafka</span>
+      </div>
+    </div>
+
+    <!-- Phase 1: Compute TDS -->
+    <div class="flow-section">
+      <div class="flow-section-title">Phase 1: Compute TDS Preview</div>
+
+      <div class="flow-step">
+        <div class="flow-step-number">1</div>
+        <div class="flow-step-title">Merchant Enters Details</div>
+      </div>
+
+      <div class="flow-row">
+        <div class="flow-box frontend">
+          <div class="flow-box-label">UI/FE</div>
+          <div class="flow-box-name">Merchant UI</div>
+          <div class="flow-box-fields">
+            vendor_payment_amount: 500000<br>
+            category: "194J"<br>
+            deduction_date: 1231432<br>
+            contact_id: "aksjdhask"<br>
+            contact_pan: "ABCDE1234F"<br>
+            is_ldc_applicable: false
+          </div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box tax-compliance">
+          <div class="flow-box-label">POST /v1/tds/compute</div>
+          <div class="flow-box-name">Tax-Compliance</div>
+          <div class="flow-box-fields">
+            <strong>Request:</strong><br>
+            deduction_date: 1231432<br>
+            category: "194J"<br>
+            vendor_payment_amount: 500000<br>
+            source: "BB+"<br>
+            is_ldc_applicable: false<br>
+            contact_id: "aksjdhask"<br>
+            merchant_id: "ajsdakd"
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-step-number">2</div>
+        <div class="flow-step-title">Compute TDS Response</div>
+      </div>
+
+      <div class="flow-row">
+        <div class="flow-box tax-compliance">
+          <div class="flow-box-label">Response</div>
+          <div class="flow-box-name">ComputeNonSalaryTdsData</div>
+          <div class="flow-box-fields">
+            category: "194J"<br>
+            vendor_payment_amount: 500000<br>
+            rate_tds_deducted: 1000 (10%)<br>
+            total_tds_amount: 50000<br>
+            basic_tax_amount: 40000<br>
+            surcharge: 5000<br>
+            cess: 2500<br>
+            interest: 1500<br>
+            penalty: 1000<br>
+            is_ldc_valid: false
+          </div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box frontend">
+          <div class="flow-box-label">Display Preview</div>
+          <div class="flow-box-name">Merchant UI</div>
+          <div class="flow-box-fields">
+            Gross: ₹5,000<br>
+            TDS: ₹500 (10%)<br>
+            Net Payout: ₹4,500
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+      <div class="flow-step">
+        <div class="flow-step-number">3</div>
+        <div class="flow-step-title">Merchant Confirms → Create Payout (same TDS inputs passed to API)</div>
+      </div>
+
+      <div class="info" style="margin: 8px 0 12px 0; font-size: 13px;">
+        <strong>Key Design:</strong> The <code>tds</code> field in the payout request carries the <strong>same inputs the compute API takes</strong> — not pre-computed values.
+        Payouts calls Tax-Compliance compute internally and derives the net payout amount itself.
+        <code>deduction_date</code> can be auto-generated in code at the time the call is made to Tax-Compliance.
+      </div>
+
+      <div class="flow-row">
+        <div class="flow-box frontend">
+          <div class="flow-box-label">POST /v1/payouts</div>
+          <div class="flow-box-name">UI/FE → Payouts</div>
+          <div class="flow-box-fields">
+            <strong>Request:</strong><br>
+            amount: 500000 <em>(gross)</em><br>
+            fund_account_id<br>
+            currency: "INR"<br>
+            mode: "NEFT"<br>
+            purpose: "vendor_bill"<br>
+            <strong>tds:</strong> {<br>
+            &nbsp;&nbsp;category: "194J"<br>
+            &nbsp;&nbsp;source: "BB+"<br>
+            &nbsp;&nbsp;is_ldc_applicable: false<br>
+            &nbsp;&nbsp;contact_id: "aksjdhask" <em>(opt; else from fund_account)</em><br>
+            }<br>
+            <em>merchant_id from auth; deduction_date auto-generated</em>
+          </div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box payouts">
+          <div class="flow-box-label">Backend Service</div>
+          <div class="flow-box-name">Payouts</div>
+          <div class="flow-box-fields">
+            <em>TDS inputs present → calls compute</em>
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-step-number">3a</div>
+        <div class="flow-step-title">Payouts Calls Tax-Compliance Compute Internally</div>
+      </div>
+
+      <div class="flow-row">
+        <div class="flow-box payouts">
+          <div class="flow-box-label">Internal S2S Call</div>
+          <div class="flow-box-name">Payouts</div>
+          <div class="flow-box-fields">
+            Extracts &amp; forwards:<br>
+            deduction_date (auto)<br>
+            category, source, is_ldc_applicable (tds)<br>
+            vendor_payment_amount ← amount<br>
+            contact_id ← fund_account or tds<br>
+            merchant_id ← auth context
+          </div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box tax-compliance">
+          <div class="flow-box-label">POST /v1/tds/compute</div>
+          <div class="flow-box-name">Tax-Compliance</div>
+          <div class="flow-box-fields">
+            <strong>Returns:</strong><br>
+            total_tds_amount: 50000<br>
+            rate_tds_deducted: 1000 (10%)<br>
+            basic_tax_amount: 40000<br>
+            surcharge: 5000<br>
+            cess: 2500<br>
+            interest: 1500<br>
+            penalty: 1000<br>
+            is_ldc_valid: false
+          </div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box payouts">
+          <div class="flow-box-label">Derives net amount</div>
+          <div class="flow-box-name">Payouts</div>
+          <div class="flow-box-fields">
+            net = 500000 − 50000 = 450000
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-step-number">4</div>
+        <div class="flow-step-title">Entities Created in Payouts DB (compute result stored)</div>
+      </div>
+
+      <div class="flow-group">
+        <div class="flow-group-label">Entities Created</div>
+        <div class="flow-row">
+          <div class="flow-box database">
+            <div class="flow-box-label">Table: payouts</div>
+            <div class="flow-box-name">pout_xxx</div>
+            <div class="flow-box-fields">
+              id: "pout_xxx"<br>
+              amount: 450000 (net)<br>
+              status: "created"<br>
+              merchant_id<br>
+              fund_account_id
+            </div>
+          </div>
+          <div class="flow-box database">
+            <div class="flow-box-label">Table: payout_details</div>
+            <div class="flow-box-name">additional_info</div>
+            <div class="flow-box-fields">
+              payout_id: "pout_xxx"<br>
+              <strong>tds_input:</strong> {<br>
+              &nbsp;&nbsp;category: "194J"<br>
+              &nbsp;&nbsp;vendor_payment_amount: 500000<br>
+              &nbsp;&nbsp;source: "BB+"<br>
+              &nbsp;&nbsp;is_ldc_applicable: false<br>
+              &nbsp;&nbsp;contact_id: "aksjdhask"<br>
+              }<br>
+              <strong>tds_computed:</strong> {<br>
+              &nbsp;&nbsp;total_tds_amount: 50000<br>
+              &nbsp;&nbsp;rate_tds_deducted: 1000 (10%)<br>
+              &nbsp;&nbsp;category_code: "194J"<br>
+              &nbsp;&nbsp;basic_tax_amount: 40000<br>
+              &nbsp;&nbsp;surcharge: 5000<br>
+              &nbsp;&nbsp;cess: 2500<br>
+              &nbsp;&nbsp;interest: 1500<br>
+              &nbsp;&nbsp;penalty: 1000<br>
+              &nbsp;&nbsp;is_ldc_valid: false<br>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-section">
+      <div class="flow-section-title">Phase 3: Async TDS Payment Creation</div>
+
+      <div class="flow-step">
+        <div class="flow-step-number">5</div>
+        <div class="flow-step-title">Payout State Transitions</div>
+      </div>
+
+      <div class="state-flow">
+        <div class="state-box created">created</div>
+        <div class="flow-arrow">→</div>
+        <div class="state-box processing">initiated</div>
+        <div class="flow-arrow">→</div>
+        <div class="state-box processing">processing</div>
+        <div class="flow-arrow">→</div>
+        <div class="state-box success">processed</div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-step-number">6</div>
+        <div class="flow-step-title">On Processed: Publish to Kafka</div>
+      </div>
+
+      <div class="flow-row">
+        <div class="flow-box payouts">
+          <div class="flow-box-label">Publisher</div>
+          <div class="flow-box-name">Payouts</div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box kafka">
+          <div class="flow-box-label">Topic: add-tds-entry-bb-plus</div>
+          <div class="flow-box-name">Kafka Message</div>
+          <div class="flow-box-fields">
+            entity_id: "pout_xxx"<br>
+            entity_type: "payout"<br>
+            entity_status: "processed"<br>
+            merchant_id<br>
+            payout_amount: 450000<br>
+            gross_amount: 500000<br>
+            tds_amount: 50000<br>
+            category_id: 14<br>
+            category_code: "194J"<br>
+            contact_pan: "ABCDE1234F"<br>
+            source: "bb_plus"
+          </div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box tax-compliance">
+          <div class="flow-box-label">Consumer</div>
+          <div class="flow-box-name">Tax-Compliance</div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-step-number">7</div>
+        <div class="flow-step-title">Create TDS Payment Entity</div>
+      </div>
+
+      <div class="flow-group">
+        <div class="flow-group-label">Entity Created (Async via Kafka)</div>
+        <div class="flow-row">
+          <div class="flow-box database">
+            <div class="flow-box-label">Table: tds_payments</div>
+            <div class="flow-box-name">tdsp_xxx</div>
+            <div class="flow-box-fields">
+              id: "tdsp_xxx"<br>
+              merchant_id<br>
+              source_transaction_id: "pout_xxx"<br>
+              transaction_source: "BB_PLUS"<br>
+              base_amount: 500000<br>
+              total_tds_amount: 50000<br>
+              vendor_payment_amount: 450000<br>
+              category_id: 14<br>
+              category_code: "194J"<br>
+              contact_pan: "ABCDE1234F"<br>
+              status: "success"
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <h3>2.2 Implementation Details</h3>
+
+  <h4>2.2.1 Struct & Code Changes</h4>
+  <p>See <strong>Section 11</strong> for the full codebase analysis: exact Go struct definitions, insertion points, and file change summary.</p>
+
+  <h4>2.2.2 Kafka Topic Routing</h4>
+  <p><strong>File:</strong> <code>internal/app/payouts/core.go</code></p>
+  <p><strong>Logic:</strong></p>
+  <ul>
+    <li>Check if <code>source == "bb_plus"</code> in TDS extended info</li>
+    <li>If BB+: Publish to topic <code>add-tds-entry-bb-plus</code> → Tax-Compliance</li>
+    <li>If not BB+: Publish to existing topic <code>add-tds-entry</code> → Vendor-Payments (unchanged)</li>
+    <li><strong>Guarantee:</strong> BB+ payouts are never published to Vendor-Payments topics.</li>
+    <li><strong>Parity:</strong> Publishing conditions mirror the existing <code>add-tds-entry</code> flow; only the topic/consumer differs.</li>
+  </ul>
+
+  <h3>2.3 Pros and Cons</h3>
+
+  <table>
+    <thead>
+      <tr><th>Pros</th><th>Cons</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="pro">Single API call for merchant</td>
+        <td class="con">TDS Payment entity created asynchronously</td>
+      </tr>
+      <tr>
+        <td class="pro">Payout and TDS data stored atomically</td>
+        <td class="con">If Kafka consumer fails, filing data delayed</td>
+      </tr>
+      <tr>
+        <td class="pro">Simple integration for frontend</td>
+        <td class="con">Cannot return TDS Payment ID in payout response</td>
+      </tr>
+      <tr>
+        <td class="pro">Status changes automatically propagated via Kafka</td>
+        <td></td>
+      </tr>
+      <tr>
+        <td class="pro">Existing payout flow largely unchanged</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <hr>
+
+  <h2 id="approach-2">3. Approach 2: Pre-Create TDS Payment Entity</h2>
+
+  <div class="approach-header">
+    <span class="approach-badge badge-alternative">Alternative</span>
+    <span class="muted">Tax-Compliance orchestrates TDS + Payout creation</span>
+  </div>
+
+  <h3>3.1 Flow Diagram</h3>
+
+  <div class="flow-container">
+    <div class="flow-title">Approach 2: Tax-Compliance Orchestrated</div>
+
+    <!-- Legend -->
+    <div class="flow-legend">
+      <div class="flow-legend-item">
+        <div class="flow-legend-color" style="background: #f3e8ff; border: 2px solid #9333ea;"></div>
+        <span>UI/FE</span>
+      </div>
+      <div class="flow-legend-item">
+        <div class="flow-legend-color" style="background: #dbeafe; border: 2px solid #2563eb;"></div>
+        <span>Tax-Compliance (Orchestrator)</span>
+      </div>
+      <div class="flow-legend-item">
+        <div class="flow-legend-color" style="background: #dcfce7; border: 2px solid #16a34a;"></div>
+        <span>Payouts</span>
+      </div>
+      <div class="flow-legend-item">
+        <div class="flow-legend-color" style="background: #ffedd5; border: 2px solid #ea580c;"></div>
+        <span>Kafka</span>
+      </div>
+    </div>
+
+    <!-- Phase 1: Compute TDS (same as Approach 1) -->
+    <div class="flow-section">
+      <div class="flow-section-title">Phase 1: Compute TDS Preview (Same as Approach 1)</div>
+
+      <div class="flow-step">
+        <div class="flow-step-number">1</div>
+        <div class="flow-step-title">Merchant Enters Details → Compute TDS → Display Preview</div>
+        <div class="flow-step-desc">Same flow as Approach 1 - see Section 2.1</div>
+      </div>
+    </div>
+
+    <!-- Phase 2: Single API - Tax-Compliance Orchestrates -->
+    <div class="flow-section">
+      <div class="flow-section-title">Phase 2: Single API Call (Tax-Compliance Orchestrates)</div>
+
+      <div class="flow-step">
+        <div class="flow-step-number">2</div>
+        <div class="flow-step-title">Merchant Confirms → UI/FE calls Tax-Compliance</div>
+      </div>
+
+      <div class="flow-row">
+        <div class="flow-box frontend">
+          <div class="flow-box-label">POST /v1/tds/payout</div>
+          <div class="flow-box-name">UI/FE → Tax-Compliance</div>
+          <div class="flow-box-fields">
+            <strong>tds:</strong> {<br>
+            &nbsp;&nbsp;base_amount: 500000<br>
+            &nbsp;&nbsp;tds_amount: 50000<br>
+            &nbsp;&nbsp;category_id: 14<br>
+            &nbsp;&nbsp;category_code: "194J"<br>
+            &nbsp;&nbsp;tds_rate: 1000<br>
+            &nbsp;&nbsp;contact_id<br>
+            &nbsp;&nbsp;contact_pan: "ABCDE1234F"<br>
+            &nbsp;&nbsp;ldc_applicable: false<br>
+            }<br>
+            <strong>payout:</strong> {<br>
+            &nbsp;&nbsp;fund_account_id<br>
+            &nbsp;&nbsp;amount: 450000<br>
+            &nbsp;&nbsp;currency: "INR"<br>
+            &nbsp;&nbsp;mode: "NEFT"<br>
+            &nbsp;&nbsp;purpose: "vendor_bill"<br>
+            }
+          </div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box tax-compliance" style="border: 3px solid #2b6cb0;">
+          <div class="flow-box-label">★ Orchestrator</div>
+          <div class="flow-box-name">Tax-Compliance</div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-step-number">5</div>
+        <div class="flow-step-title">Create TDS Payout (Combined API)</div>
+        <div class="flow-step-api">POST /v1/tds/payout { tds: {...}, payout: {...} }</div>
+        <div class="flow-step-desc">All TDS + Payout details in single request</div>
+      </div>
+
+      <!-- Internal Orchestration Box -->
+      <div class="flow-group" style="border-color: #2563eb; background: rgba(37, 99, 235, 0.05);">
+        <div class="flow-group-label" style="color: #2b6cb0;">Tax-Compliance Internal Orchestration</div>
+
+        <div class="flow-step">
+          <div class="flow-step-number">3</div>
+          <div class="flow-step-title">Step A: Create TDS Payment Entity</div>
+        </div>
+
+        <div class="flow-row">
+          <div class="flow-box database">
+            <div class="flow-box-label">Table: tds_payments</div>
+            <div class="flow-box-name">tdsp_xxx</div>
+            <div class="flow-box-fields">
+              id: "tdsp_xxx"<br>
+              merchant_id<br>
+              source_transaction_id: NULL<br>
+              transaction_source: "BB_PLUS"<br>
+              base_amount: 500000<br>
+              total_tds_amount: 50000<br>
+              vendor_payment_amount: 450000<br>
+              category_id: 14<br>
+              category_code: "194J"<br>
+              contact_pan: "ABCDE1234F"<br>
+              <strong>status: "pending"</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="flow-arrow-down">↓</div>
+
+        <div class="flow-step">
+          <div class="flow-step-number">4</div>
+          <div class="flow-step-title">Step B: Call Payouts Service</div>
+        </div>
+
+        <div class="flow-row">
+          <div class="flow-box tax-compliance">
+            <div class="flow-box-label">POST /v1/payouts</div>
+            <div class="flow-box-name">Tax-Compliance → Payouts</div>
+            <div class="flow-box-fields">
+              fund_account_id<br>
+              amount: 450000<br>
+              currency: "INR"<br>
+              mode: "NEFT"<br>
+              purpose: "vendor_bill"<br>
+              <strong>tds:</strong> {<br>
+              &nbsp;&nbsp;tds_payment_id: "tdsp_xxx"<br>
+              &nbsp;&nbsp;category_id: 14<br>
+              &nbsp;&nbsp;amount: 50000<br>
+              }
+            </div>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-box payouts">
+            <div class="flow-box-label">Response</div>
+            <div class="flow-box-name">Payouts</div>
+            <div class="flow-box-fields">
+              id: "pout_xxx"<br>
+              status: "created"<br>
+              amount: 450000
+            </div>
+          </div>
+        </div>
+
+        <div class="flow-step">
+          <div class="flow-step-number">5</div>
+          <div class="flow-step-title">Step C: Payouts Creates Entities</div>
+        </div>
+
+        <div class="flow-row">
+          <div class="flow-box database">
+            <div class="flow-box-label">Table: payouts</div>
+            <div class="flow-box-name">pout_xxx</div>
+            <div class="flow-box-fields">
+              id: "pout_xxx"<br>
+              amount: 450000<br>
+              status: "created"<br>
+              merchant_id<br>
+              fund_account_id
+            </div>
+          </div>
+          <div class="flow-box database">
+            <div class="flow-box-label">Table: payout_details</div>
+            <div class="flow-box-name">additional_info</div>
+            <div class="flow-box-fields">
+              payout_id: "pout_xxx"<br>
+              tds_payment_id: "tdsp_xxx"<br>
+              category_id: 14<br>
+              tds_amount: 50000
+            </div>
+          </div>
+        </div>
+
+        <div class="flow-arrow-down">↓</div>
+
+        <div class="flow-step">
+          <div class="flow-step-number">6</div>
+          <div class="flow-step-title">Step D: Link Payout to TDS Payment</div>
+        </div>
+
+        <div class="flow-row">
+          <div class="flow-box database">
+            <div class="flow-box-label">UPDATE tds_payments</div>
+            <div class="flow-box-name">tdsp_xxx</div>
+            <div class="flow-box-fields">
+              source_transaction_id: "pout_xxx"<br>
+              (status still "pending")
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-step-number">7</div>
+        <div class="flow-step-title">Return Combined Response to UI/FE</div>
+      </div>
+
+      <div class="flow-row">
+        <div class="flow-box tax-compliance">
+          <div class="flow-box-label">Response</div>
+          <div class="flow-box-name">Tax-Compliance → UI/FE</div>
+          <div class="flow-box-fields">
+            <strong>tds_payment:</strong> {<br>
+            &nbsp;&nbsp;id: "tdsp_xxx"<br>
+            &nbsp;&nbsp;status: "pending"<br>
+            }<br>
+            <strong>payout:</strong> {<br>
+            &nbsp;&nbsp;id: "pout_xxx"<br>
+            &nbsp;&nbsp;status: "created"<br>
+            &nbsp;&nbsp;amount: 450000<br>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Failure Handling -->
+    <div class="flow-section">
+      <div class="flow-section-title">Failure Handling (No Orphans)</div>
+
+      <div class="flow-group" style="border-color: #f56565; background: rgba(245, 101, 101, 0.1);">
+        <div class="flow-group-label" style="color: #c53030;">If Payouts API Fails</div>
+
+        <div class="state-flow">
+          <div class="state-box pending">TDS Payment: pending</div>
+          <div class="flow-arrow">→</div>
+          <div style="color: #c53030; font-weight: 600;">Payouts fails</div>
+          <div class="flow-arrow">→</div>
+          <div class="state-box failed">TDS Payment: cancelled</div>
+        </div>
+
+        <div style="text-align: center; color: #718096; font-size: 13px; margin-top: 12px;">
+          ✓ Synchronous cancellation - No orphaned TDS Payments
+        </div>
+      </div>
+    </div>
+
+    <!-- Phase 3: Async Status Sync -->
+    <div class="flow-section">
+      <div class="flow-section-title">Phase 3: Async Status Sync (via Existing Kafka)</div>
+
+      <div class="flow-step">
+        <div class="flow-step-number">8</div>
+        <div class="flow-step-title">Payout Processing (Async)</div>
+      </div>
+
+      <div class="state-flow">
+        <div class="state-box created">created</div>
+        <div class="flow-arrow">→</div>
+        <div class="state-box processing">initiated</div>
+        <div class="flow-arrow">→</div>
+        <div class="state-box processing">processing</div>
+        <div class="flow-arrow">→</div>
+        <div class="state-box success">processed</div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-step-number">9</div>
+        <div class="flow-step-title">Payout Status Published to Existing Kafka Topic</div>
+      </div>
+
+      <div class="flow-row">
+        <div class="flow-box payouts">
+          <div class="flow-box-label">Publisher</div>
+          <div class="flow-box-name">Payouts</div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box kafka">
+          <div class="flow-box-label">Topic: payout-status-updates</div>
+          <div class="flow-box-name">Existing Kafka Topic</div>
+          <div class="flow-box-fields">
+            entity_id: "pout_xxx"<br>
+            entity_type: "payout"<br>
+            status: "processed"<br>
+            merchant_id<br>
+            amount: 450000
+          </div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box tax-compliance">
+          <div class="flow-box-label">Consumer</div>
+          <div class="flow-box-name">Tax-Compliance</div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-step-number">10</div>
+        <div class="flow-step-title">Update TDS Payment Status</div>
+      </div>
+
+      <div class="flow-row">
+        <div class="flow-box database">
+          <div class="flow-box-label">UPDATE tds_payments</div>
+          <div class="flow-box-name">tdsp_xxx</div>
+          <div class="flow-box-fields">
+            <em>Lookup by source_transaction_id</em><br>
+            status: "pending" → "success"
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-group">
+        <div class="flow-group-label">Status Mapping</div>
+        <table style="width: auto; margin: 0;">
+          <tr><td><strong>Payout Status</strong></td><td><strong>→</strong></td><td><strong>TDS Payment Status</strong></td></tr>
+          <tr><td>processed</td><td>→</td><td style="color: #065f46;">success</td></tr>
+          <tr><td>reversed</td><td>→</td><td style="color: #92400e;">voided</td></tr>
+          <tr><td>failed / cancelled</td><td>→</td><td style="color: #991b1b;">cancelled</td></tr>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <h3>3.2 Implementation Details</h3>
+
+  <h4>3.2.1 Tax-Compliance: Create TDS Payout API (Orchestrator)</h4>
+  <p><strong>Endpoint:</strong> <code>POST /v1/tds/payout</code></p>
+  <p><strong>Description:</strong> Single API that creates TDS Payment and then calls Payouts service internally.</p>
+
+  <p><strong>Request Fields (TDS Details):</strong></p>
+  <table>
+    <thead>
+      <tr><th>Field</th><th>Required</th><th>Description</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>merchant_id</td><td>Yes</td><td>Merchant identifier</td></tr>
+      <tr><td>base_amount</td><td>Yes</td><td>Gross amount (paise)</td></tr>
+      <tr><td>tds_amount</td><td>Yes</td><td>TDS amount (paise)</td></tr>
+      <tr><td>category_id</td><td>Yes</td><td>TDS category ID</td></tr>
+      <tr><td>category_code</td><td>Yes</td><td>e.g., "194J"</td></tr>
+      <tr><td>tds_rate</td><td>Yes</td><td>Rate in basis points</td></tr>
+      <tr><td>contact_id</td><td>Yes</td><td>Contact reference</td></tr>
+      <tr><td>contact_pan</td><td>Yes</td><td>Deductee PAN</td></tr>
+      <tr><td>ldc_applicable</td><td>No</td><td>LDC flag</td></tr>
+    </tbody>
+  </table>
+
+  <p><strong>Request Fields (Payout Details):</strong></p>
+  <table>
+    <thead>
+      <tr><th>Field</th><th>Required</th><th>Description</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>fund_account_id</td><td>Yes</td><td>Destination fund account</td></tr>
+      <tr><td>amount</td><td>Yes</td><td>Net amount to vendor (paise)</td></tr>
+      <tr><td>currency</td><td>Yes</td><td>"INR"</td></tr>
+      <tr><td>mode</td><td>Yes</td><td>NEFT/IMPS/RTGS/UPI</td></tr>
+      <tr><td>purpose</td><td>Yes</td><td>Payout purpose</td></tr>
+      <tr><td>reference_id</td><td>No</td><td>Merchant reference</td></tr>
+      <tr><td>narration</td><td>No</td><td>Description</td></tr>
+      <tr><td>notes</td><td>No</td><td>Additional metadata</td></tr>
+    </tbody>
+  </table>
+
+  <p><strong>Response:</strong> Returns both <code>payout_id</code> and <code>tds_payment_id</code></p>
+
+  <h4>3.2.2 Tax-Compliance: Internal Flow</h4>
+  <p><strong>File:</strong> <code>tax-compliance/internal/app/tds/payout_orchestrator.go</code></p>
+  <p><strong>Logic:</strong></p>
+  <ol>
+    <li>Validate TDS fields (PAN format, category exists, amounts consistent)</li>
+    <li>Create TDS Payment entity with <code>status: "pending"</code></li>
+    <li>Call Payouts API: <code>POST /v1/payouts</code> with tds_payment_id</li>
+    <li>If Payouts succeeds: Update TDS Payment <code>source_transaction_id = payout_id</code></li>
+    <li>If Payouts fails: Update TDS Payment <code>status = "cancelled"</code>, return error</li>
+    <li>Return combined response to UI/FE</li>
+  </ol>
+
+  <h4>3.2.3 Payouts: Store TDS Payment ID</h4>
+  <p><strong>File:</strong> <code>internal/app/dtos/payoutDetails.go</code></p>
+  <p>For Approach 2, TDSDetails struct stores:</p>
+  <ul>
+    <li><code>tds_payment_id</code> - Reference to Tax-Compliance entity</li>
+    <li><code>category_id</code> - For validation/display</li>
+    <li><code>amount</code> - TDS amount for validation/display</li>
+  </ul>
+
+  <h4>3.2.4 Status Sync via Kafka</h4>
+  <p><strong>File:</strong> <code>tax-compliance/internal/consumers/payout_status_consumer.go</code></p>
+  <p><strong>Logic:</strong></p>
+  <ul>
+    <li>Tax-Compliance consumer listens to existing payout status topic</li>
+    <li>Vendor-Payments does not consume <code>payout-status-updates</code> for TDS creation</li>
+    <li>On receiving payout status update, lookup TDS Payment by <code>source_transaction_id</code></li>
+    <li>If no TDS Payment exists, ignore the message (non‑BB+ payouts)</li>
+    <li>Map payout status to TDS Payment status:
+      <ul>
+        <li>processed → success</li>
+        <li>reversed → voided</li>
+        <li>failed/cancelled → cancelled</li>
+      </ul>
+    </li>
+  </ul>
+
+  <h3>3.3 Pros and Cons</h3>
+
+  <table>
+    <thead>
+      <tr><th>Pros</th><th>Cons</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="pro">Single API call from UI/FE (Tax-Compliance orchestrates)</td>
+        <td class="con">Tax-Compliance becomes dependent on Payouts service</td>
+      </tr>
+      <tr>
+        <td class="pro">Minimal payload to Payouts API (just tds_payment_id)</td>
+        <td class="con">Tax-Compliance needs to know Payouts API contract</td>
+      </tr>
+      <tr>
+        <td class="pro">Single source of truth - Tax-Compliance owns all TDS data</td>
+        <td class="con">Increased latency (Tax-Compliance → Payouts hop)</td>
+      </tr>
+      <tr>
+        <td class="pro">No orphaned TDS Payments (cancelled sync if payout fails)</td>
+        <td class="con">Tax-Compliance service scope expands beyond TDS</td>
+      </tr>
+      <tr>
+        <td class="pro">TDS Payment ID available in response with payout</td>
+        <td class="con">Retry logic more complex (partial state possible)</td>
+      </tr>
+      <tr>
+        <td class="pro">Status sync via <code>payout-status-updates</code> (Tax-Compliance filters by <code>source_transaction_id</code>)</td>
+        <td></td>
+      </tr>
+      <tr>
+        <td class="pro">Payouts service has no TDS business logic</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <hr>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════════════ -->
+  <!-- APPROACH 3: PRE-COMPUTE PATTERN (RECOMMENDED)                                        -->
+  <!-- ═══════════════════════════════════════════════════════════════════════════════════ -->
+
+  <h2 id="approach-3">4. Approach 3: Pre-Compute Pattern (RECOMMENDED)</h2>
+
+  <div class="approach-header">
+    <span class="approach-badge badge-recommended">RECOMMENDED — All Channels</span>
+    <span class="muted">BFF/Dashboard pre-computes TDS; Payouts receives pre-computed values; minimal Payouts changes</span>
+  </div>
+
+  <div class="recommendation">
+    <h3>Core Principle: Keep Payouts Dumb About TDS Computation</h3>
+    <p>
+      Payouts should <strong>NOT</strong> call Tax-Compliance during payout creation.
+      Instead, Payouts receives <strong>pre-computed</strong> TDS values — the same pattern used by Vendor-Payments today.
+      The only new responsibility: route to correct Kafka topic based on <code>source</code>.
+    </p>
+  </div>
+
+  <h3>4.1 Key Differences from Approach 1</h3>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Aspect</th>
+        <th>Approach 1 (Inline Compute)</th>
+        <th>Approach 3 (Pre-Compute)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>TDS computation</strong></td>
+        <td class="con">Payouts calls Tax-Compliance (S2S)</td>
+        <td class="pro">BFF/Dashboard calls Tax-Compliance first</td>
+      </tr>
+      <tr>
+        <td><strong>S2S call in payout creation</strong></td>
+        <td class="con">Yes — blocking, adds latency</td>
+        <td class="pro">No — Payouts just stores values</td>
+      </tr>
+      <tr>
+        <td><strong>Amount handling</strong></td>
+        <td class="con">Mutates <code>params.Amount</code> (gross→net)</td>
+        <td class="pro">Caller sends NET amount directly</td>
+      </tr>
+      <tr>
+        <td><strong>Failure coupling</strong></td>
+        <td class="con">Payouts fails if Tax-Compliance down</td>
+        <td class="pro">Compute separate from payout creation</td>
+      </tr>
+      <tr>
+        <td><strong>Payouts code changes</strong></td>
+        <td class="con">High (client, compute logic, amount mutation)</td>
+        <td class="pro">Low (add fields + topic routing)</td>
+      </tr>
+      <tr>
+        <td><strong>API version</strong></td>
+        <td class="con">May need changes to amount semantics</td>
+        <td class="pro">Extend existing /v2/payouts</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>4.2 Architecture &amp; Flow Diagram</h3>
+
+  <div class="flow-container">
+    <div class="flow-title">Approach 3: Pre-Compute Pattern (RECOMMENDED)</div>
+
+    <!-- Legend -->
+    <div class="flow-legend">
+      <div class="flow-legend-item">
+        <div class="flow-legend-color" style="background: #f3e8ff; border: 2px solid #9333ea;"></div>
+        <span>UI/FE/BFF</span>
+      </div>
+      <div class="flow-legend-item">
+        <div class="flow-legend-color" style="background: #dbeafe; border: 2px solid #2563eb;"></div>
+        <span>Tax-Compliance</span>
+      </div>
+      <div class="flow-legend-item">
+        <div class="flow-legend-color" style="background: #dcfce7; border: 2px solid #16a34a;"></div>
+        <span>Payouts (Minimal Changes)</span>
+      </div>
+      <div class="flow-legend-item">
+        <div class="flow-legend-color" style="background: #ffedd5; border: 2px solid #ea580c;"></div>
+        <span>Kafka</span>
+      </div>
+    </div>
+
+    <!-- Phase 1: COMPUTE (Before Payout) -->
+    <div class="flow-section">
+      <div class="flow-section-title">Phase 1: Compute TDS (Before Payout Creation)</div>
+
+      <div class="flow-step">
+        <div class="flow-step-number">1</div>
+        <div class="flow-step-title">BFF Calls Tax-Compliance Compute API</div>
+        <div class="flow-step-desc">BFF/Dashboard calls compute BEFORE payout creation — not Payouts</div>
+      </div>
+
+      <div class="flow-row">
+        <div class="flow-box frontend">
+          <div class="flow-box-label">POST /v1/tds/compute</div>
+          <div class="flow-box-name">BFF → Tax-Compliance</div>
+          <div class="flow-box-fields">
+            merchant_id<br>
+            contact_id<br>
+            category: "194J"<br>
+            vendor_payment_amount: 1000000<br>
+            is_ldc_applicable: false
+          </div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box tax-compliance">
+          <div class="flow-box-label">Tax-Compliance</div>
+          <div class="flow-box-name">Computes TDS</div>
+          <div class="flow-box-fields">
+            - Lookup rate for category<br>
+            - Check LDC certificate<br>
+            - Calculate breakdown
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-step-number">2</div>
+        <div class="flow-step-title">BFF Receives Compute Response</div>
+      </div>
+
+      <div class="flow-row">
+        <div class="flow-box tax-compliance">
+          <div class="flow-box-label">Response</div>
+          <div class="flow-box-name">Compute Result</div>
+          <div class="flow-box-fields">
+            tds_amount: 100000<br>
+            net_amount: 900000<br>
+            category_id: 14<br>
+            effective_rate: 10.0<br>
+            breakdown: {<br>
+            &nbsp;&nbsp;basic_tax: 90000<br>
+            &nbsp;&nbsp;cess: 10000<br>
+            }
+          </div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box frontend">
+          <div class="flow-box-label">Display Preview</div>
+          <div class="flow-box-name">BFF → UI</div>
+          <div class="flow-box-fields">
+            Gross: ₹10,000<br>
+            TDS (10%): ₹1,000<br>
+            <strong>Net Payout: ₹9,000</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phase 2: CREATE PAYOUT -->
+    <div class="flow-section">
+      <div class="flow-section-title">Phase 2: Create Payout (Payouts Unchanged)</div>
+
+      <div class="flow-step">
+        <div class="flow-step-number">3</div>
+        <div class="flow-step-title">User Confirms → BFF Creates Payout with Pre-Computed Values</div>
+        <div class="flow-step-desc">BFF sends NET amount + pre-computed TDS to Payouts. No S2S call in Payouts.</div>
+      </div>
+
+      <div class="flow-row">
+        <div class="flow-box frontend">
+          <div class="flow-box-label">POST /v2/payouts</div>
+          <div class="flow-box-name">BFF → Payouts</div>
+          <div class="flow-box-fields">
+            <strong>amount: 900000</strong> (NET)<br>
+            fund_account_id<br>
+            mode: "IMPS"<br>
+            purpose: "vendor_bill"<br>
+            <strong>tds:</strong> {<br>
+            &nbsp;&nbsp;category_id: 14<br>
+            &nbsp;&nbsp;amount: 100000<br>
+            &nbsp;&nbsp;<span style="color:#16a34a;font-weight:600;">source: "bb_plus"</span><br>
+            &nbsp;&nbsp;<span style="color:#16a34a;font-weight:600;">gross_amount: 1000000</span><br>
+            &nbsp;&nbsp;<span style="color:#16a34a;font-weight:600;">breakdown: {...}</span><br>
+            }
+          </div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box payouts">
+          <div class="flow-box-label">Payouts Service</div>
+          <div class="flow-box-name">No Compute Call!</div>
+          <div class="flow-box-fields">
+            - Validate inputs<br>
+            - Create payout (net)<br>
+            - Store TDS in payout_details<br>
+            - <strong>No S2S call</strong><br>
+            - <strong>No amount mutation</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-group">
+        <div class="flow-group-label">Entities Created (Same as Today)</div>
+        <div class="flow-row">
+          <div class="flow-box database">
+            <div class="flow-box-label">Table: payouts</div>
+            <div class="flow-box-name">pout_xxx</div>
+            <div class="flow-box-fields">
+              id: "pout_xxx"<br>
+              amount: 900000 (NET)<br>
+              status: "created"
+            </div>
+          </div>
+          <div class="flow-box database">
+            <div class="flow-box-label">Table: payout_details</div>
+            <div class="flow-box-name">additional_info</div>
+            <div class="flow-box-fields">
+              tds_category_id: 14<br>
+              tds_amount: 100000<br>
+              <span style="color:#16a34a;">tds_source: "bb_plus"</span><br>
+              <span style="color:#16a34a;">tds_gross_amount: 1000000</span><br>
+              <span style="color:#16a34a;">tds_breakdown: {...}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phase 3: ASYNC TDS ENTITY -->
+    <div class="flow-section">
+      <div class="flow-section-title">Phase 3: Async TDS Payment Creation (Topic Routing)</div>
+
+      <div class="flow-step">
+        <div class="flow-step-number">4</div>
+        <div class="flow-step-title">Payout Reaches Terminal State → Route to Correct Topic</div>
+        <div class="flow-step-desc">Only change in Payouts: route based on <code>source</code> field</div>
+      </div>
+
+      <div class="flow-row">
+        <div class="flow-box payouts">
+          <div class="flow-box-label">ProcessTdsForPayout()</div>
+          <div class="flow-box-name">Topic Routing Logic</div>
+          <div class="flow-box-fields">
+            if source == "bb_plus":<br>
+            &nbsp;&nbsp;→ add-tds-entry-bb-plus<br>
+            else:<br>
+            &nbsp;&nbsp;→ add-tds-entry (existing)
+          </div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box kafka">
+          <div class="flow-box-label">Topic: add-tds-entry-bb-plus</div>
+          <div class="flow-box-name">BB+ TDS Events</div>
+          <div class="flow-box-fields">
+            entity_id: "pout_xxx"<br>
+            entity_status: "processed"<br>
+            tds_amount: 100000<br>
+            gross_amount: 1000000<br>
+            breakdown: {...}
+          </div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box tax-compliance">
+          <div class="flow-box-label">Consumer</div>
+          <div class="flow-box-name">Tax-Compliance</div>
+        </div>
+      </div>
+
+      <div class="flow-group">
+        <div class="flow-group-label">TDS Payment Created (Same as Approach 1)</div>
+        <div class="flow-row">
+          <div class="flow-box database">
+            <div class="flow-box-label">Table: tds_payments</div>
+            <div class="flow-box-name">tdsp_xxx</div>
+            <div class="flow-box-fields">
+              source_transaction_id: "pout_xxx"<br>
+              transaction_source: "BB_PLUS"<br>
+              total_tds_amount: 100000<br>
+              status: "success"
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Key Benefit -->
+    <div class="flow-group" style="border-color: #48bb78; background: rgba(72, 187, 120, 0.1);">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div style="font-size: 24px;">✓</div>
+        <div>
+          <strong style="color: #276749;">Zero S2S calls in Payout creation critical path</strong>
+          <div style="font-size: 13px; color: #4a5568;">Compute happens before, not during payout creation</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h3>4.3 API Design: No New Version Needed</h3>
+
+  <div class="info">
+    <h4>Extend /v2/payouts with Optional Fields (Backward Compatible)</h4>
+    <p>
+      The public <code>/v1/payouts</code> API does NOT expose TDS fields. The internal <code>/v2/payouts</code> already has
+      a <code>tds</code> object for Vendor-Payments. We simply add optional BB+ fields to the existing struct.
+    </p>
+  </div>
+
+  <h4>Request: POST /v2/payouts</h4>
+  <pre><code>{
+  "fund_account_id": "fa_xxx",
+  "amount": 900000,                       // NET amount (caller computes)
+  "currency": "INR",
+  "mode": "IMPS",
+  "purpose": "vendor bill",
+
+  "tds": {
+    // Existing fields (Vendor-Payments - unchanged)
+    "category_id": 14,
+    "amount": 100000,
+
+    // NEW: BB+ fields (all optional, pre-computed by caller)
+    "source": "bb_plus",                  // Routing indicator
+    "gross_amount": 1000000,              // For audit trail
+    "breakdown": {                        // From compute response
+      "basic_tax_amount": 90000,
+      "surcharge": 0,
+      "cess": 10000,
+      "effective_rate": 10.0,
+      "category_code": "194C",
+      "is_ldc_applied": false
+    }
+  }
+}</code></pre>
+
+  <h4>Benefits of This Design</h4>
+  <ul>
+    <li><strong>Backward compatible:</strong> All new fields are optional</li>
+    <li><strong>No semantic change:</strong> <code>amount</code> remains NET (same as today)</li>
+    <li><strong>No S2S call:</strong> Caller pre-computes TDS</li>
+    <li><strong>Domain separation:</strong> Tax-Compliance owns computation</li>
+    <li><strong>Single API version:</strong> No v3 needed</li>
+  </ul>
+
+  <h3>4.4 Implementation Details (Minimal Payouts Changes)</h3>
+
+  <h4>4.4.1 Extend TDSDetails Struct</h4>
+  <p><strong>File:</strong> <code>internal/app/dtos/payoutDetails.go</code></p>
+  <pre><code>type TDSDetails struct {
+    // ═══════════════════════════════════════════════════════════
+    // EXISTING FIELDS (Vendor-Payments - unchanged)
+    // ═══════════════════════════════════════════════════════════
+    TDSCategoryID nulls.UInt32  `json:"category_id" binding:"omitempty"`
+    TDSAmount     nulls.Float64 `json:"amount" binding:"omitempty"`
+
+    // ═══════════════════════════════════════════════════════════
+    // NEW FIELDS (BB+ - all optional, pre-computed by caller)
+    // ═══════════════════════════════════════════════════════════
+
+    // Routing indicator: "bb_plus" routes to Tax-Compliance topic
+    Source string `json:"source" binding:"omitempty"`
+
+    // Gross amount for audit trail (amount field is NET)
+    GrossAmount nulls.Int64 `json:"gross_amount" binding:"omitempty"`
+
+    // Full breakdown from Tax-Compliance compute response
+    Breakdown *TDSBreakdown `json:"breakdown" binding:"omitempty"`
+}
+
+type TDSBreakdown struct {
+    BasicTaxAmount float64 `json:"basic_tax_amount"`
+    Surcharge      float64 `json:"surcharge"`
+    Cess           float64 `json:"cess"`
+    EffectiveRate  float64 `json:"effective_rate"`
+    CategoryCode   string  `json:"category_code"`    // "194C"
+    IsLdcApplied   bool    `json:"is_ldc_applied"`
+    LdcRate        float64 `json:"ldc_rate,omitempty"`
+    MajorHead      int     `json:"major_head"`
+    MinorHead      int     `json:"minor_head"`
+}
+
+// IsBBPlusFlow returns true if this is a BB+ TDS payout
+func (t *TDSDetails) IsBBPlusFlow() bool {
+    return t.Source == "bb_plus"
+}</code></pre>
+
+  <h4>4.4.2 Kafka Topic Routing</h4>
+  <p><strong>File:</strong> <code>internal/app/payouts/core.go</code></p>
+  <pre><code>const (
+    TdsTopic       = "add-tds-entry"          // Existing → Vendor-Payments
+    TdsTopicBBPlus = "add-tds-entry-bb-plus"  // NEW → Tax-Compliance
+)
+
+func (c Core) ProcessTdsForPayout(ctx context.Context, payout *Payout, oldStatus string) errors.IError {
+    if MoneyTransferredStatus[payout.GetStatus()] {
+        payoutDetails := payout.GetPayoutDetails(ctx)
+        additionalInfo := payoutDetails.GetAdditionalInfo()
+
+        // ════════════════════════════════════════════════════
+        // ONLY CHANGE: Route based on source
+        // ════════════════════════════════════════════════════
+        topic := TdsTopic
+        if additionalInfo.GetTDSSource() == "bb_plus" {
+            topic = TdsTopicBBPlus
+        }
+
+        message := c.buildTdsMessage(ctx, payout, payoutDetails, additionalInfo)
+        eventClient := provider.GetEventClient(ctx)
+        eventClient.PublishEvent(message, topic)
+    }
+    return nil
+}</code></pre>
+
+  <h4>4.4.3 What Does NOT Change in Payouts</h4>
+  <ul>
+    <li><code>CreatePayoutToFundAccountV2()</code> core logic — unchanged</li>
+    <li>Amount handling — no mutation</li>
+    <li>Validation logic — unchanged</li>
+    <li>Processor flow — unchanged</li>
+    <li>Any S2S calls — none added</li>
+    <li>Public /v1/payouts API — unchanged</li>
+  </ul>
+
+  <h3>4.5 Pros and Cons</h3>
+
+  <table>
+    <thead>
+      <tr><th>Pros</th><th>Cons</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="pro">No S2S call in payout creation (0ms added latency)</td>
+        <td class="con">Compute and payout are separate API calls</td>
+      </tr>
+      <tr>
+        <td class="pro">Payouts failure-decoupled from Tax-Compliance</td>
+        <td class="con">LDC could expire between compute and payout</td>
+      </tr>
+      <tr>
+        <td class="pro">Minimal Payouts changes (just fields + routing)</td>
+        <td class="con">BFF/Dashboard must orchestrate two calls</td>
+      </tr>
+      <tr>
+        <td class="pro">No amount mutation — caller sends NET</td>
+        <td></td>
+      </tr>
+      <tr>
+        <td class="pro">Backward compatible — all new fields optional</td>
+        <td></td>
+      </tr>
+      <tr>
+        <td class="pro">No new API version needed</td>
+        <td></td>
+      </tr>
+      <tr>
+        <td class="pro">Same pattern as existing Vendor-Payments flow</td>
+        <td></td>
+      </tr>
+      <tr>
+        <td class="pro">Easy to test — no Tax-Compliance mock needed</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <hr>
+
+  <h2 id="comparison">5. Comparison</h2>
+
+  <h3>5.1 All Three Approaches</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Criteria</th>
+        <th>Approach 1: Inline Compute</th>
+        <th>Approach 2: Tax-Compliance Orchestrated</th>
+        <th style="background:#c6f6d5;">Approach 3: Pre-Compute (RECOMMENDED)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>S2S call in payout creation</strong></td>
+        <td class="con">Yes — blocking</td>
+        <td class="con">Yes — reversed (Tax→Payouts)</td>
+        <td class="pro" style="background:#f0fff4;"><strong>No</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Latency added to payout API</strong></td>
+        <td class="con">+50-200ms</td>
+        <td class="con">+50-200ms</td>
+        <td class="pro" style="background:#f0fff4;"><strong>0ms</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Payouts fails if Tax-Compliance down</strong></td>
+        <td class="con">Yes</td>
+        <td class="con">Yes</td>
+        <td class="pro" style="background:#f0fff4;"><strong>No</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Amount mutation in Payouts</strong></td>
+        <td class="con">Yes (gross→net)</td>
+        <td class="pro">No</td>
+        <td class="pro" style="background:#f0fff4;"><strong>No</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Payouts code changes</strong></td>
+        <td class="con">High (client, logic)</td>
+        <td class="pro">Minimal (just ID)</td>
+        <td class="pro" style="background:#f0fff4;"><strong>Low (fields + routing)</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Domain separation</strong></td>
+        <td class="con">Leaks to Payouts</td>
+        <td class="con">Leaks to Tax-Compliance</td>
+        <td class="pro" style="background:#f0fff4;"><strong>Clean</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Testing complexity</strong></td>
+        <td class="con">High (mock Tax-Compliance)</td>
+        <td class="con">High (mock Payouts)</td>
+        <td class="pro" style="background:#f0fff4;"><strong>Low</strong></td>
+      </tr>
+      <tr>
+        <td><strong>API version change</strong></td>
+        <td class="con">Maybe (amount semantics)</td>
+        <td class="pro">No</td>
+        <td class="pro" style="background:#f0fff4;"><strong>No (extend v2)</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Backward compatible</strong></td>
+        <td class="con">Breaking if amount=gross</td>
+        <td class="pro">Yes</td>
+        <td class="pro" style="background:#f0fff4;"><strong>Yes</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Bulk payouts</strong></td>
+        <td class="con">Complex (S2S per row)</td>
+        <td class="con">Complex (new bulk API)</td>
+        <td class="pro" style="background:#f0fff4;"><strong>Simple (compute per row upfront)</strong></td>
+      </tr>
+      <tr>
+        <td><strong>New Kafka topic</strong></td>
+        <td>Yes</td>
+        <td class="pro">No</td>
+        <td>Yes</td>
+      </tr>
+      <tr>
+        <td><strong>TDS Payment ID in response</strong></td>
+        <td class="con">No (async)</td>
+        <td class="pro">Yes (sync)</td>
+        <td class="con">No (async)</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>5.2 Approach 1 vs Approach 2 (Original Analysis)</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Criteria</th>
+        <th>Approach 1: Extend TDS Field</th>
+        <th>Approach 2: Tax-Compliance Orchestrated</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>API Calls from UI/FE</strong></td>
+        <td class="pro">1 (UI/FE → Payouts)</td>
+        <td class="pro">1 (UI/FE → Tax-Compliance → Payouts)</td>
+      </tr>
+      <tr>
+        <td><strong>Orchestrator</strong></td>
+        <td>Payouts Service</td>
+        <td>Tax-Compliance Service</td>
+      </tr>
+      <tr>
+        <td><strong>Payout API Payload</strong></td>
+        <td class="con">Large (all TDS fields)</td>
+        <td class="pro">Minimal (just tds_payment_id)</td>
+      </tr>
+      <tr>
+        <td><strong>TDS Data Ownership</strong></td>
+        <td>Payouts stores TDS details, forwards to Tax-Compliance</td>
+        <td class="pro">Tax-Compliance owns all TDS data (single source of truth)</td>
+      </tr>
+      <tr>
+        <td><strong>TDS Entity Creation</strong></td>
+        <td>Async (via Kafka after payout processed)</td>
+        <td>Sync (before payout, in same request)</td>
+      </tr>
+      <tr>
+        <td><strong>Failure Handling</strong></td>
+        <td class="pro">Kafka retry/DLQ</td>
+        <td class="pro">Sync cancel if payout fails (no orphans)</td>
+      </tr>
+      <tr>
+        <td><strong>Status Sync</strong></td>
+        <td><code>add-tds-entry-bb-plus</code> — BB+ payout TDS events for Tax-Compliance</td>
+        <td class="pro">Existing payout status Kafka topic (Tax-Compliance filters by <code>source_transaction_id</code>)</td>
+      </tr>
+      <tr>
+        <td><strong>TDS Payment ID in Response</strong></td>
+        <td class="con">Not available immediately</td>
+        <td class="pro">Available with payout response</td>
+      </tr>
+      <tr>
+        <td><strong>Payouts Service Changes</strong></td>
+        <td class="con">Needs TDS field handling, Kafka publishing</td>
+        <td class="pro">Minimal (just store tds_payment_id)</td>
+      </tr>
+      <tr>
+        <td><strong>Tax-Compliance Changes</strong></td>
+        <td class="pro">Just Kafka consumer</td>
+        <td class="con">New orchestrator API, Payouts client</td>
+      </tr>
+      <tr>
+        <td><strong>New Kafka Topic</strong></td>
+        <td class="con">Yes — <code>add-tds-entry-bb-plus</code> (BB+ payout TDS events for Tax-Compliance)</td>
+        <td class="pro">No (uses existing)</td>
+      </tr>
+      <tr>
+        <td><strong>Service Coupling</strong></td>
+        <td class="pro">Loose (via Kafka)</td>
+        <td class="con">Tight (Tax-Compliance depends on Payouts)</td>
+      </tr>
+      <tr>
+        <td><strong>Latency</strong></td>
+        <td class="pro">Direct UI/FE → Payouts</td>
+        <td class="con">Extra hop: UI/FE → Tax-Compliance → Payouts</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <hr>
+
+  <h2 id="recommendation">6. Recommendation</h2>
+
+  <div class="recommendation">
+    <h3>RECOMMENDED: Approach 3 — Pre-Compute Pattern</h3>
+    <p><strong>After detailed codebase analysis and architecture review, Approach 3 is the recommended solution.</strong></p>
+    <p><strong>Rationale:</strong></p>
+    <ul>
+      <li><strong>Zero latency added to payout API:</strong> No S2S call in the critical path. Compute happens before payout creation.</li>
+      <li><strong>Minimal Payouts changes:</strong> Only add optional fields to TDSDetails + Kafka topic routing. No core logic changes.</li>
+      <li><strong>No API version change:</strong> Extend existing <code>/v2/payouts</code> with optional fields. No breaking changes.</li>
+      <li><strong>Domain separation:</strong> Payouts remains "dumb" about TDS computation. Tax-Compliance owns all compute logic.</li>
+      <li><strong>Failure decoupling:</strong> If Tax-Compliance is down, only preview fails — not payout creation.</li>
+      <li><strong>Easy testing:</strong> No need to mock Tax-Compliance in Payouts tests.</li>
+      <li><strong>Same pattern as Vendor-Payments:</strong> Follows the existing proven pattern.</li>
+      <li><strong>Works for all channels:</strong> UI (single payout), Bulk (CSV), and future API exposure.</li>
+    </ul>
+  </div>
+
+  <div class="warning">
+    <h4>When to Consider Other Approaches</h4>
+    <ul>
+      <li><strong>Approach 1 (Inline Compute):</strong> If having a single API call is critical and latency is acceptable.</li>
+      <li><strong>Approach 2 (Tax-Compliance Orchestrated):</strong> If synchronous TDS Payment ID in the API response is a hard requirement.</li>
+    </ul>
+  </div>
+
+  <h3>6.1 Changes Summary by Service</h3>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Service</th>
+        <th>Changes Required</th>
+        <th>Effort</th>
+        <th>Risk</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Payouts</strong></td>
+        <td>
+          <ul>
+            <li>Add <code>Source</code>, <code>GrossAmount</code>, <code>Breakdown</code> to TDSDetails</li>
+            <li>Add BB+ fields to AdditionalInfoStruct</li>
+            <li>Add topic routing in <code>ProcessTdsForPayout()</code></li>
+          </ul>
+        </td>
+        <td style="color:#16a34a;"><strong>Low</strong></td>
+        <td style="color:#16a34a;"><strong>Low</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Tax-Compliance</strong></td>
+        <td>
+          <ul>
+            <li>Build <code>POST /v1/tds/compute</code> endpoint (if not exists)</li>
+            <li>Implement TDS rate lookup and LDC application</li>
+            <li>Build Kafka consumer for <code>add-tds-entry-bb-plus</code></li>
+            <li>Create TDS Payment records from Kafka messages</li>
+          </ul>
+        </td>
+        <td>Medium</td>
+        <td style="color:#16a34a;"><strong>None to Payouts</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Dashboard/BFF</strong></td>
+        <td>
+          <ul>
+            <li>Call <code>/v1/tds/compute</code> before payout creation</li>
+            <li>Display computed TDS breakdown in preview</li>
+            <li>Pass pre-computed values to <code>/v2/payouts</code></li>
+          </ul>
+        </td>
+        <td>Medium</td>
+        <td style="color:#16a34a;"><strong>None to Payouts</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Bulk Service</strong></td>
+        <td>
+          <ul>
+            <li>Add <code>gross_amount</code>, <code>tds_category</code> columns to CSV template</li>
+            <li>Call compute per row during parsing</li>
+            <li>Generate preview file with computed values</li>
+            <li>Pass computed values when creating payouts</li>
+          </ul>
+        </td>
+        <td>Medium</td>
+        <td style="color:#16a34a;"><strong>None to Payouts</strong></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <hr>
+
+  <h2 id="api-contracts">7. API Contracts</h2>
+
+  <h3>7.1 Compute TDS API (Tax-Compliance)</h3>
+
+  <p><span class="tag tag-post">POST</span> <code>/v1/tds/compute</code></p>
+
+  <h4>Request</h4>
+  <pre><code>{
+  "deduction_date": 1231432,
+  "category": "194J",
+  "vendor_payment_amount": 500000,
+  "source": "BB+",
+  "is_ldc_applicable": false,
+  "contact_id": "aksjdhask",
+  "merchant_id": "ajsdakd"
+}</code></pre>
+
+  <h4>Request Fields</h4>
+  <table>
+    <thead>
+      <tr><th>Field</th><th>Description</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>deduction_date</code></td><td>Date on which merchant has made a transaction. In payroll's case it can be transaction date or payroll month.</td></tr>
+      <tr><td><code>vendor_payment_amount</code></td><td>Gross amount (paise) entered by merchant; amount against which TDS is calculated. TDS = gross × rate.</td></tr>
+      <tr><td><code>source</code></td><td>Payroll / BB+</td></tr>
+      <tr><td><code>category</code></td><td>Decides at which rate TDS will be deducted.</td></tr>
+      <tr><td><code>is_ldc_applicable</code></td><td>Lower deduction of TDS will be determined.</td></tr>
+      <tr><td><code>contact_id</code></td><td>Needed for LDC computation.</td></tr>
+      <tr><td><code>merchant_id</code></td><td>Needed for LDC computation.</td></tr>
+    </tbody>
+  </table>
+
+  <h4>Response</h4>
+  <pre><code>{
+  "status": "success",
+  "ComputeNonSalaryTdsData": {
+    "deduction_date": "2025-01-01",
+    "major_head": 200,
+    "minor_head": 300,
+    "category": "194J",
+    "basic_tax_amount": 40000.00,
+    "interest": 1500.00,
+    "surcharge": 5000.00,
+    "cess": 2500.00,
+    "penalty": 1000.00,
+    "vendor_payment_amount": 500000,
+    "total_tds_amount": 50000.00,
+    "is_ldc_valid": false,
+    "rate_tds_deducted": 1000
+  },
+  "error": ""
+}</code></pre>
+
+  <div class="info">
+    <h4>UI Display: Rate is in Basis Points</h4>
+    <p><code>rate_tds_deducted</code> is stored in <strong>basis points</strong> (1 bp = 0.01%). To show the correct percentage:</p>
+    <pre><code>display_percentage = rate_tds_deducted ÷ 100
+
+Example: rate_tds_deducted = 1000 → display "10%" (not "1000%")</code></pre>
+    <p>Do <strong>not</strong> display the raw value as percentage; the UI must divide by 100.</p>
+  </div>
+
+  <div class="info">
+    <h4>Amount Calculation</h4>
+    <p><code>total_tds_amount</code> is the <strong>sum</strong> of all components:</p>
+    <pre><code>total_tds_amount = basic_tax_amount + surcharge + cess + interest + penalty
+
+Example: 40000 + 5000 + 2500 + 1500 + 1000 = 50000</code></pre>
+    <p>Net payout = gross − total_tds_amount. Gross never increases.</p>
+  </div>
+
+  <hr>
+
+  <h3>7.2 Approach 1: Create Payout with TDS Compute Inputs</h3>
+
+  <p><span class="tag tag-post">POST</span> <code>/v1/payouts</code></p>
+
+  <div class="info" style="margin-bottom: 12px;">
+    <h4>Key Change: TDS field carries compute inputs, not pre-computed values</h4>
+    <p>
+      The <code>tds</code> object in the request mirrors the inputs to <code>POST /v1/tds/compute</code>.
+      Payouts calls Tax-Compliance compute internally, derives the net payout amount, and stores both the raw inputs and the computed result in <code>payout_details.additional_info</code>.
+      <code>deduction_date</code> is auto-generated by Payouts at the time of the internal compute call.
+    </p>
+  </div>
+
+  <h4>Request</h4>
+  <pre><code>{
+  "account_number": "7878780080316316",
+  "fund_account_id": "fa_Abc123xyz",
+  "currency": "INR",
+  "mode": "NEFT",
+  "purpose": "vendor_bill",
+  "reference_id": "INV-2024-001",
+  "narration": "Vendor payment",
+  "notes": {
+    "invoice_id": "INV-2024-001"
+  },
+  "tds": {
+    "deduction_date": 1231432,           // auto-generated in code at call time to compliance
+    "category": "194J",                  // user selection
+    "vendor_payment_amount": 1000000,    // user-entered gross amount
+    "source": "BB+",                     // indicates which screen / channel
+    "is_ldc_applicable": false,          // user selected
+    "contact_id": "cont_xyz123",         // contact selected for payout
+    "merchant_id": "ajsdakd"             // who initiated the payout
+  }
+  // Note: payout.amount (net) is NOT provided by caller — Payouts derives it internally
+  // Net = vendor_payment_amount − total_tds_amount (from compute response)
+}</code></pre>
+
+  <h4>Response</h4>
+  <pre><code>{
+  "id": "pout_Abc123xyz",
+  "entity": "payout",
+  "amount": 900000,                      // Net amount (derived by Payouts: gross − TDS)
+  "currency": "INR",
+  "status": "created",
+  "tds": {
+    "category": "194J",
+    "vendor_payment_amount": 1000000,    // Gross (as provided)
+    "total_tds_amount": 100000,          // Computed TDS amount
+    "rate_tds_deducted": 1000            // 10% in basis points
+  },
+  "created_at": 1708099200
+}</code></pre>
+
+  <h3>7.3 Approach 2: Tax-Compliance Orchestrated</h3>
+
+  <div class="info">
+    <h4>Key Design: Tax-Compliance as Orchestrator</h4>
+  <p>In this approach, UI/FE calls Tax-Compliance with all details. Tax-Compliance creates the TDS Payment entity
+    and then internally calls Payouts API. This provides a single API call from UI/FE and ensures no orphaned TDS Payments.</p>
+  </div>
+
+  <h4>Single API: Create TDS Payout (Tax-Compliance)</h4>
+  <p><span class="tag tag-post">POST</span> <code>/v1/tds/payout</code></p>
+  <pre><code>// Request - Contains ALL TDS + Payout details
+{
+  // TDS Details
+  "tds": {
+    "base_amount": 1000000,            // Gross amount (₹10,000)
+    "tds_amount": 100000,              // TDS amount (₹1,000)
+    "category_id": 14,
+    "category_code": "194J",
+    "tds_rate": 1000,                  // 10% in basis points
+    "contact_id": "cont_xyz123",
+    "contact_pan": "ABCDE1234F",
+    "ldc_applicable": false,
+    "ldc_certificate_id": ""
+  },
+
+  // Payout Details (passed to Payouts Service)
+  "payout": {
+    "fund_account_id": "fa_Abc123xyz",
+    "amount": 900000,                  // Net amount to vendor
+    "currency": "INR",
+    "mode": "NEFT",
+    "purpose": "vendor_bill",
+    "reference_id": "INV-2024-001",
+    "narration": "Vendor payment",
+    "notes": {
+      "invoice_id": "INV-2024-001"
+    }
+  }
+}
+
+// Response - Contains both IDs
+{
+  "tds_payment": {
+    "id": "tdsp_Abc123xyz",
+    "status": "pending",
+    "base_amount": 1000000,
+    "tds_amount": 100000,
+    "category_code": "194J"
+  },
+  "payout": {
+    "id": "pout_Abc123xyz",
+    "status": "created",
+    "amount": 900000
+  }
+}</code></pre>
+
+  <h4>Internal: Tax-Compliance → Payouts API Call</h4>
+  <p><span class="tag tag-post">POST</span> <code>/v1/payouts</code> (called by Tax-Compliance internally)</p>
+  <pre><code>// Tax-Compliance constructs this request to Payouts
+{
+  "fund_account_id": "fa_Abc123xyz",
+  "amount": 900000,
+  "currency": "INR",
+  "mode": "NEFT",
+  "purpose": "vendor_bill",
+  "reference_id": "INV-2024-001",
+  "narration": "Vendor payment",
+  "notes": {
+    "invoice_id": "INV-2024-001"
+  },
+  "tds": {
+    "tds_payment_id": "tdsp_Abc123xyz",  // Reference to just-created TDS Payment
+    "category_id": 14,
+    "amount": 100000
+  }
+}</code></pre>
+
+  <h4>Failure Handling</h4>
+  <pre><code>// If Payouts API fails, Tax-Compliance cancels TDS Payment synchronously
+
+// Example error response to UI/FE:
+{
+  "error": {
+    "code": "PAYOUT_CREATION_FAILED",
+    "description": "Insufficient balance",
+    "tds_payment_status": "cancelled"  // No orphan
+  }
+}</code></pre>
+
+  <h4>Status Sync via Kafka (automatic)</h4>
+  <p>When payout reaches terminal state, Tax-Compliance consumes from standard payout status topic:</p>
+  <table>
+    <thead>
+      <tr><th>Payout Status</th><th>TDS Payment Status</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>processed</td><td>success</td></tr>
+      <tr><td>reversed</td><td>voided</td></tr>
+      <tr><td>failed</td><td>cancelled</td></tr>
+      <tr><td>cancelled</td><td>cancelled</td></tr>
+    </tbody>
+  </table>
+
+  <hr>
+
+  <h2 id="data-models">8. Data Models</h2>
+
+  <h3>8.1 Payouts Service — payout_details.additional_info</h3>
+
+  <p><strong>Approach 1:</strong> Stores both <code>bb_plus_tds_input</code> (raw caller inputs) and <code>bb_plus_tds_computed</code> (full compute response) in the JSON column. See <strong>Section 11.4</strong> for the exact JSON structure and Go struct definitions.</p>
+
+  <p><strong>Approach 2:</strong> Stores only a reference — <code>tds_payment_id</code>, <code>tds_category_id</code>, <code>tds_amount</code>. Full TDS details live in Tax-Compliance <code>tds_payments</code> table.</p>
+
+  <h3>8.2 Tax-Compliance Service</h3>
+
+  <h4>tds_payments Table</h4>
+  <table>
+    <thead>
+      <tr><th>Column</th><th>Type</th><th>Description</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>id</td><td>VARCHAR(20)</td><td>Primary key (tdsp_xxx)</td></tr>
+      <tr><td>merchant_id</td><td>VARCHAR(14)</td><td>Merchant identifier</td></tr>
+      <tr><td>source_transaction_id</td><td>VARCHAR(20)</td><td>Payout ID reference</td></tr>
+      <tr><td>transaction_source</td><td>VARCHAR(20)</td><td>"BB_PLUS"</td></tr>
+      <tr><td>base_amount</td><td>BIGINT</td><td>Gross amount (paise)</td></tr>
+      <tr><td>total_tds_amount</td><td>BIGINT</td><td>TDS amount (paise)</td></tr>
+      <tr><td>vendor_payment_amount</td><td>BIGINT</td><td>Net amount (paise)</td></tr>
+      <tr><td>category_id</td><td>INT</td><td>TDS category ID</td></tr>
+      <tr><td>category_code</td><td>VARCHAR(10)</td><td>e.g., "194J"</td></tr>
+      <tr><td>contact_pan</td><td>VARCHAR(10)</td><td>Deductee PAN</td></tr>
+      <tr><td>status</td><td>VARCHAR(20)</td><td>pending, success, voided, cancelled</td></tr>
+    </tbody>
+  </table>
+  <p><strong>Indexes:</strong> merchant_id, source_transaction_id, contact_pan, status</p>
+
+  <h3>8.3 Kafka Message (Approach 1)</h3>
+  <p><strong>Topic:</strong> <code>add-tds-entry-bb-plus</code> — BB+ payout TDS events consumed by Tax-Compliance only.</p>
+  <p>Published by <code>ProcessTdsForPayout()</code> in <code>core.go:7858</code> when payout reaches a terminal state (<code>MoneyTransferredStatus</code>).</p>
+  <table>
+    <thead>
+      <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>entity_id</td><td>string</td><td>Payout ID (pout_xxx)</td></tr>
+      <tr><td>entity_type</td><td>string</td><td>"payout"</td></tr>
+      <tr><td>entity_status</td><td>string</td><td>"processed" / "reversed"</td></tr>
+      <tr><td>merchant_id</td><td>string</td><td>Merchant identifier</td></tr>
+      <tr><td>tds_category_id</td><td>uint32</td><td>Existing field — TDS category ID</td></tr>
+      <tr><td>tds_amount</td><td>float64</td><td>Existing field — total TDS amount</td></tr>
+      <tr><td colspan="3" style="background: #f0fff4; font-weight: 600;">BB+ Enrichment (omitempty — nil for non-BB+ payouts)</td></tr>
+      <tr><td>bb_plus_tds_input</td><td>object</td><td>Raw compute inputs: category, vendor_payment_amount, source, is_ldc_applicable, contact_id</td></tr>
+      <tr><td>bb_plus_tds_computed</td><td>object</td><td>Full compute response: total_tds_amount, rate_tds_deducted, basic_tax_amount, surcharge, cess, interest, penalty, is_ldc_valid, major_head, minor_head, deduction_date, category_code</td></tr>
+    </tbody>
+  </table>
+  <p class="muted">Tax-Compliance uses <code>bb_plus_tds_computed</code> to create the <code>tds_payment</code> row with full breakdown. For Vendor-Payments payouts, these BB+ fields are nil and the message structure is backward-compatible.</p>
+
+  <hr>
+
+  <h2 id="review">9. Open Questions (All Resolved — See Section 19)</h2>
+
+  <div class="recommendation">
+    <h4>All Questions Resolved in Version 8.0</h4>
+    <p>All open questions have been addressed. See <a href="#resolved-questions">Section 19: Resolved Open Questions</a> for detailed resolutions.</p>
+  </div>
+
+  <table>
+    <thead>
+      <tr><th>#</th><th>Area</th><th>Question</th><th>Status</th><th>Resolution</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td>Idempotency</td>
+        <td>Is TDS Payment creation idempotent?</td>
+        <td style="color:#16a34a;"><strong>✓ RESOLVED</strong></td>
+        <td>Yes, via UNIQUE constraint on <code>source_transaction_id</code>. See Section 18.2.1</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td>Cross-Service Dependency</td>
+        <td>Timeout/circuit breaker for compute call?</td>
+        <td style="color:#16a34a;"><strong>✓ RESOLVED</strong></td>
+        <td>N/A for Approach 3 (no S2S call in Payouts). BFF handles with 3s timeout.</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>Kafka Reliability</td>
+        <td>Retry policy? DLQ? Reconciliation?</td>
+        <td style="color:#16a34a;"><strong>✓ RESOLVED</strong></td>
+        <td>4 retries with exponential backoff, then DLQ. Daily reconciliation job. See Section 18.2</td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td>Reversal Handling</td>
+        <td>Void after filing to government?</td>
+        <td style="color:#16a34a;"><strong>✓ RESOLVED</strong></td>
+        <td>Case 3 defined: Manual recovery by Ops. See Section 13.2</td>
+      </tr>
+      <tr>
+        <td>5</td>
+        <td>LDC Validation</td>
+        <td>LDC expires between compute and payout?</td>
+        <td style="color:#16a34a;"><strong>✓ RESOLVED</strong></td>
+        <td>Accepted risk (minimal). LDC validity 1 year, compute-to-payout &lt;30s.</td>
+      </tr>
+      <tr>
+        <td>6</td>
+        <td>Backward Compatibility</td>
+        <td>Distinguish BB+ from Vendor-Payments?</td>
+        <td style="color:#16a34a;"><strong>✓ RESOLVED</strong></td>
+        <td>By <code>tds.source == "bb_plus"</code>. See Section 11.2</td>
+      </tr>
+      <tr>
+        <td>7</td>
+        <td>Transaction Boundaries</td>
+        <td>Outbox pattern for Kafka?</td>
+        <td style="color:#16a34a;"><strong>✓ RESOLVED</strong></td>
+        <td>Yes, implement outbox pattern. See Section 18.1</td>
+      </tr>
+      <tr>
+        <td>8</td>
+        <td>Observability</td>
+        <td>Trace ID across services? Metrics for failures?</td>
+        <td style="color:#16a34a;"><strong>✓ RESOLVED</strong></td>
+        <td>Yes, propagate <code>trace_id</code> in Kafka. Metrics and alerts defined. See Section 17</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <hr>
+
+  <h2 id="bulk-payouts">10. Bulk Payout Considerations</h2>
+
+  <p class="muted">Evaluation of both approaches for bulk/batch payout scenarios.</p>
+
+  <h3>10.1 Bulk Payout Architecture</h3>
+
+  <p>Bulk payouts follow a batch processing pattern:</p>
+  <table>
+    <thead>
+      <tr><th>Stage</th><th>Description</th><th>Key Fields</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Batch Creation</strong></td>
+        <td>CSV/API with multiple payout records</td>
+        <td><code>batch_id</code></td>
+      </tr>
+      <tr>
+        <td><strong>Validation</strong></td>
+        <td>Each record validated independently</td>
+        <td>fund_account, amount, mode</td>
+      </tr>
+      <tr>
+        <td><strong>Single Payout Creation</strong></td>
+        <td>Each validated record creates a payout entity</td>
+        <td><code>payout.batch_id</code> links to parent batch</td>
+      </tr>
+      <tr>
+        <td><strong>Processing</strong></td>
+        <td>Individual payouts processed via normal flow</td>
+        <td>State machine: created → processed</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="info">
+    <h4>Convergence Point</h4>
+    <p>Bulk payouts converge to single payout flow at the <strong>individual payout creation</strong> stage. Each row in the batch creates a separate <code>payout</code> entity that follows the standard payout lifecycle.</p>
+    <p><strong>Reference:</strong> <code>payouts</code> table has <code>batch_id</code> column linking individual payouts to their parent batch.</p>
+  </div>
+
+  <h3>10.2 Approach Evaluation for Bulk Payouts</h3>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Criteria</th>
+        <th>Approach 1: Extend TDS Field</th>
+        <th>Approach 2: Tax-Compliance Orchestrated</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Batch Entry Point</strong></td>
+        <td class="pro">Existing batch flow via Payouts<br>(add TDS columns to CSV)</td>
+        <td class="con">New bulk API in Tax-Compliance needed<br>(POST /v1/tds/payout/bulk)</td>
+      </tr>
+      <tr>
+        <td><strong>Batch File Format</strong></td>
+        <td class="pro">Add TDS columns to existing CSV format<br>(category_code, contact_pan, gross_amount)</td>
+        <td class="pro">Same CSV format, but processed via Tax-Compliance</td>
+      </tr>
+      <tr>
+        <td><strong>Per-Row Processing</strong></td>
+        <td class="pro">Each row → single payout with TDS</td>
+        <td>Each row → Tax-Compliance creates TDS Payment → calls Payouts</td>
+      </tr>
+      <tr>
+        <td><strong>Orphaned Entities Risk</strong></td>
+        <td class="pro">None - TDS Payment created only after payout succeeds</td>
+        <td class="pro">None - TDS Payment cancelled sync if payout fails per row</td>
+      </tr>
+      <tr>
+        <td><strong>Partial Batch Failure</strong></td>
+        <td class="pro">Only successful payouts get TDS Payments (via Kafka)</td>
+        <td class="pro">TDS Payment per row cancelled if that row fails</td>
+      </tr>
+      <tr>
+        <td><strong>Latency (1000 rows)</strong></td>
+        <td class="pro">Direct to Payouts batch processing</td>
+        <td class="con">Each row: Tax-Compliance → Payouts round trip</td>
+      </tr>
+      <tr>
+        <td><strong>Implementation Effort</strong></td>
+        <td class="pro">Extend batch parser to read TDS columns<br>Same payout creation path</td>
+        <td class="con">New bulk endpoint in Tax-Compliance<br>Loop with per-row orchestration</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>10.3 Bulk Flow Diagram (Approach 1)</h3>
+
+  <div class="flow-container">
+    <div class="flow-title">Bulk Payout with TDS (Approach 1)</div>
+
+    <!-- Step 1: CSV Upload -->
+    <div class="flow-section">
+      <div class="flow-section-title">Step 1: Batch Upload</div>
+
+      <div class="flow-step">
+        <div class="flow-step-number">1</div>
+        <div class="flow-step-title">CSV Contains TDS Columns Per Row</div>
+      </div>
+
+      <div class="flow-row">
+        <div class="flow-box frontend">
+          <div class="flow-box-label">CSV Columns</div>
+          <div class="flow-box-name">Batch File Format</div>
+          <div class="flow-box-fields">
+            <strong>Standard columns:</strong><br>
+            fund_account_id<br>
+            mode<br>
+            purpose<br>
+            <strong>TDS input columns (NEW):</strong><br>
+            tds_category (e.g. "194J")<br>
+            tds_vendor_payment_amount (gross)<br>
+            tds_source (e.g. "BB+")<br>
+            tds_is_ldc_applicable<br>
+            tds_contact_id<br>
+            <em>Note: amount (net) derived by Payouts via compute</em>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: Batch Processing -->
+    <div class="flow-section">
+      <div class="flow-section-title">Step 2: Batch Processing</div>
+
+      <div class="flow-step">
+        <div class="flow-step-number">2</div>
+        <div class="flow-step-title">For Each Row: Validate + Create Payout</div>
+      </div>
+
+      <div class="flow-row">
+        <div class="flow-box payouts">
+          <div class="flow-box-label">Payouts Service</div>
+          <div class="flow-box-name">Batch Processor</div>
+          <div class="flow-box-fields">
+            For each CSV row:<br>
+            1. Validate TDS inputs present<br>
+            2. Call Tax-Compliance compute (S2S)<br>
+            3. Derive net amount from response<br>
+            4. Create payout (net amount)<br>
+            5. Create payout_details<br>
+            &nbsp;&nbsp;(tds_input + tds_computed)
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-group">
+        <div class="flow-group-label">N Payout Entities Created (linked via batch_id)</div>
+        <div class="flow-row">
+          <div class="flow-box database">
+            <div class="flow-box-label">Table: payouts</div>
+            <div class="flow-box-name">pout_001...pout_N</div>
+            <div class="flow-box-fields">
+              id: pout_xxx<br>
+              batch_id: batch_xxx<br>
+              amount: (net)<br>
+              status: "created"
+            </div>
+          </div>
+          <div class="flow-box database">
+            <div class="flow-box-label">Table: payout_details</div>
+            <div class="flow-box-name">Per payout</div>
+            <div class="flow-box-fields">
+              tds_input: {<br>
+              &nbsp;&nbsp;category, vendor_payment_amount,<br>
+              &nbsp;&nbsp;source, is_ldc_applicable,<br>
+              &nbsp;&nbsp;contact_id<br>
+              }<br>
+              tds_computed: {<br>
+              &nbsp;&nbsp;total_tds_amount, rate,<br>
+              &nbsp;&nbsp;breakdown fields...<br>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3: Async Processing -->
+    <div class="flow-section">
+      <div class="flow-section-title">Step 3: Individual Payout Processing (Same as Single Flow)</div>
+
+      <div class="state-flow">
+        <div class="state-box created">created</div>
+        <div class="flow-arrow">→</div>
+        <div class="state-box processing">initiated</div>
+        <div class="flow-arrow">→</div>
+        <div class="state-box processing">processing</div>
+        <div class="flow-arrow">→</div>
+        <div class="state-box success">processed</div>
+      </div>
+    </div>
+
+    <!-- Step 4: Kafka to Tax-Compliance -->
+    <div class="flow-section">
+      <div class="flow-section-title">Step 4: Async TDS Payment Creation</div>
+
+      <div class="flow-row">
+        <div class="flow-box payouts">
+          <div class="flow-box-label">Per Processed Payout</div>
+          <div class="flow-box-name">Payouts</div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box kafka">
+          <div class="flow-box-label">Topic</div>
+          <div class="flow-box-name">add-tds-entry-bb-plus</div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box tax-compliance">
+          <div class="flow-box-label">Consumer</div>
+          <div class="flow-box-name">Tax-Compliance</div>
+        </div>
+      </div>
+
+      <div class="flow-group">
+        <div class="flow-group-label">N TDS Payment Entities Created</div>
+        <div class="flow-row">
+          <div class="flow-box database">
+            <div class="flow-box-label">tdsp_001</div>
+            <div class="flow-box-name">success</div>
+          </div>
+          <div class="flow-box database">
+            <div class="flow-box-label">tdsp_002</div>
+            <div class="flow-box-name">success</div>
+          </div>
+          <div class="flow-box database">
+            <div class="flow-box-label">...</div>
+            <div class="flow-box-name">...</div>
+          </div>
+          <div class="flow-box database">
+            <div class="flow-box-label">tdsp_N</div>
+            <div class="flow-box-name">success</div>
+          </div>
+        </div>
+        <div style="text-align: center; color: #718096; font-size: 13px; margin-top: 8px;">
+          1 TDS Payment per processed payout
+        </div>
+      </div>
+    </div>
+
+    <!-- Key Point -->
+    <div class="flow-group" style="border-color: #48bb78; background: rgba(72, 187, 120, 0.1);">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div style="font-size: 24px;">✓</div>
+        <div>
+          <strong style="color: #276749;">Bulk payouts converge to single payout flow</strong>
+          <div style="font-size: 13px; color: #4a5568;">Each CSV row becomes an individual payout that follows the standard TDS flow</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h3>10.4 Required Changes for Bulk Flow</h3>
+
+  <h4>Approach 1 (Recommended for Bulk)</h4>
+  <table>
+    <thead>
+      <tr><th>Component</th><th>Change Required</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Batch CSV Parser</strong></td>
+        <td>
+          Add new columns to CSV template:
+          <ul>
+            <li><code>tds_category_code</code></li>
+            <li><code>tds_contact_pan</code></li>
+            <li><code>tds_gross_amount</code></li>
+            <li><code>tds_ldc_applicable</code></li>
+          </ul>
+        </td>
+      </tr>
+      <tr>
+        <td><strong>Batch Validator</strong></td>
+        <td>
+          Validate TDS fields per row:
+          <ul>
+            <li>PAN format (10 alphanumeric)</li>
+            <li>Category code exists</li>
+            <li>Amount relationship: gross - TDS = payout amount</li>
+          </ul>
+        </td>
+      </tr>
+      <tr>
+        <td><strong>Batch Row → Payout</strong></td>
+        <td>Map CSV TDS columns to <code>tds</code> object in payout creation payload</td>
+      </tr>
+      <tr>
+        <td><strong>Individual Payout Processing</strong></td>
+        <td>No change - uses existing single payout flow with TDS extended fields</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h4>Approach 2 (Tax-Compliance Orchestrated - for Bulk)</h4>
+  <table>
+    <thead>
+      <tr><th>Component</th><th>Change Required</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>New Bulk API</strong></td>
+        <td>
+          Create bulk TDS Payout API in Tax-Compliance:
+          <ul>
+            <li><code>POST /v1/tds/payout/bulk</code></li>
+            <li>Accept CSV or JSON array of TDS + Payout details</li>
+            <li>For each row: create TDS Payment → call Payouts</li>
+          </ul>
+        </td>
+      </tr>
+      <tr>
+        <td><strong>Per-Row Processing</strong></td>
+        <td>
+          <ul>
+            <li>Create TDS Payment (pending)</li>
+            <li>Call Payouts API with tds_payment_id</li>
+            <li>If success: link source_transaction_id</li>
+            <li>If failure: cancel TDS Payment (sync)</li>
+          </ul>
+        </td>
+      </tr>
+      <tr>
+        <td><strong>Batch Response</strong></td>
+        <td>
+          Return array of results per row:
+          <ul>
+            <li>Success: {payout_id, tds_payment_id}</li>
+            <li>Failure: {error, row_number}</li>
+          </ul>
+        </td>
+      </tr>
+      <tr>
+        <td><strong>Concurrency</strong></td>
+        <td>
+          Process rows in parallel (with rate limiting):
+          <ul>
+            <li>Worker pool for Payouts API calls</li>
+            <li>Aggregate results at end</li>
+          </ul>
+        </td>
+      </tr>
+      <tr>
+        <td><strong>Orphan Cleanup</strong></td>
+        <td>Not needed - TDS Payments cancelled sync on per-row failure</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>10.5 Bulk-Specific Concerns</h3>
+
+  <div class="warning">
+    <h4>Concern: Kafka Message Volume</h4>
+    <ul>
+      <li>Batch of 10,000 payouts = 10,000 Kafka messages to Tax-Compliance</li>
+      <li><strong>Question:</strong> Should we batch Kafka messages? e.g., 100 TDS entries per message?</li>
+      <li><strong>Question:</strong> What is the consumer throughput capacity?</li>
+    </ul>
+  </div>
+
+  <div class="warning">
+    <h4>Concern: Compute TDS at Scale (Approach 1 — Inline Compute per Row)</h4>
+    <ul>
+      <li>Bulk payouts skip the UI preview step — each row triggers an internal Payouts → Tax-Compliance compute call at payout creation time.</li>
+      <li><strong>Question:</strong> What is the throughput capacity of <code>POST /v1/tds/compute</code>? Can it handle 10,000 concurrent S2S calls?</li>
+      <li><strong>Question:</strong> Should TDS computation be batched or can it be done per-row inline?</li>
+      <li><strong>Question:</strong> If compute fails for a row, should that row be retried or marked failed?</li>
+    </ul>
+  </div>
+
+  <div class="warning">
+    <h4>Concern: Batch Status & TDS Status Consistency</h4>
+    <ul>
+      <li>Batch shows aggregate status (all processed, partial success, etc.)</li>
+      <li><strong>Question:</strong> How does TDS status appear in batch status response?</li>
+      <li><strong>Question:</strong> Can merchant download TDS Payment IDs for a batch?</li>
+    </ul>
+  </div>
+
+  <h3>10.6 Recommendation for Bulk Payouts</h3>
+
+  <div class="recommendation">
+    <h4>Approach 3 (Pre-Compute Pattern) — Best for Bulk</h4>
+    <p>For bulk payouts, Approach 3 is the simplest and most efficient:</p>
+    <ul>
+      <li><strong>Compute per row upfront:</strong> Dashboard calls Tax-Compliance compute for each row during CSV parsing</li>
+      <li><strong>Generate preview file:</strong> User reviews computed TDS breakdown before confirming</li>
+      <li><strong>Standard payout creation:</strong> Each row creates a payout with pre-computed TDS values</li>
+      <li><strong>No S2S per row at payout time:</strong> All compute done upfront, not during batch processing</li>
+      <li><strong>Same Payouts flow:</strong> Individual payouts follow the standard flow</li>
+    </ul>
+    <p><strong>Bulk Flow with Pre-Compute:</strong></p>
+    <ol>
+      <li>User uploads CSV with <code>gross_amount</code> and <code>tds_category</code> columns</li>
+      <li>Dashboard calls <code>/v1/tds/compute</code> for each row (parallel, fast)</li>
+      <li>Dashboard generates preview file showing computed TDS for each row</li>
+      <li>User reviews preview and confirms with OTP</li>
+      <li>Dashboard creates payouts with pre-computed values (no compute during creation)</li>
+      <li>Each payout follows standard async TDS Payment creation via Kafka</li>
+    </ol>
+  </div>
+
+  <div class="info">
+    <h4>Why Pre-Compute is Better Than Inline Compute for Bulk</h4>
+    <ul>
+      <li><strong>Preview before commit:</strong> User sees TDS breakdown before any money moves</li>
+      <li><strong>Parallel compute:</strong> Tax-Compliance calls can be parallelized during parsing</li>
+      <li><strong>Fast payout creation:</strong> No S2S calls during batch processing (the critical path)</li>
+      <li><strong>Better error handling:</strong> Compute errors caught early, before batch confirmation</li>
+      <li><strong>Rate limiting friendly:</strong> Compute calls spread out during preview phase</li>
+    </ul>
+  </div>
+
+  <hr>
+
+  <h2 id="code-references">11. Codebase Analysis &amp; Implementation Plan (Approach 3 — Pre-Compute Pattern)</h2>
+
+  <p class="muted">
+    Detailed implementation plan for the <strong>recommended Pre-Compute Pattern</strong>.
+    This section maps the minimal changes required in the Payouts service.
+  </p>
+
+  <div class="recommendation">
+    <h4>Key Difference from Approach 1</h4>
+    <p>
+      In Approach 3, Payouts does <strong>NOT</strong> call Tax-Compliance compute. The BFF/Dashboard
+      calls compute first and passes pre-computed values to Payouts. This eliminates:
+    </p>
+    <ul>
+      <li>S2S client code</li>
+      <li>Amount mutation (gross → net)</li>
+      <li>Complex error handling for compute failures</li>
+      <li>Tax-Compliance dependency in payout creation path</li>
+    </ul>
+  </div>
+
+  <!-- ===== 11.0 API Request/Response (Pre-Compute Pattern) ===== -->
+  <h3>11.0 API Request Format (Pre-Computed Values)</h3>
+  <div class="info">
+    <h4>Pre-Compute Pattern: Caller Sends NET Amount + Computed TDS</h4>
+    <p>Unlike Approach 1, the caller (BFF/Dashboard) computes TDS first and sends:</p>
+    <ul>
+      <li><code>amount</code> = NET amount (gross - tds)</li>
+      <li><code>tds.amount</code> = pre-computed TDS amount</li>
+      <li><code>tds.category_id</code> = numeric category ID</li>
+      <li><code>tds.source</code> = "bb_plus" (for routing)</li>
+      <li><code>tds.gross_amount</code> = original gross amount (for audit)</li>
+      <li><code>tds.breakdown</code> = full compute breakdown (for Kafka message)</li>
+    </ul>
+  </div>
+  <pre><code>// POST /v2/payouts - Request from BFF (Pre-Computed)
+{
+  "fund_account_id": "fa_xxx",
+  "amount": 900000,                       // NET amount (caller already subtracted TDS)
+  "currency": "INR",
+  "mode": "IMPS",
+  "purpose": "vendor_bill",
+
+  "tds": {
+    "category_id": 14,                    // Existing field
+    "amount": 100000,                     // Existing field - TDS amount
+
+    // NEW: BB+ fields (all optional)
+    "source": "bb_plus",                  // Route to Tax-Compliance topic
+    "gross_amount": 1000000,              // Original gross for audit
+    "breakdown": {                        // From compute response
+      "basic_tax_amount": 90000,
+      "surcharge": 0,
+      "cess": 10000,
+      "effective_rate": 10.0,
+      "category_code": "194C",
+      "is_ldc_applied": false,
+      "major_head": 21,
+      "minor_head": 200
+    }
+  }
+}</code></pre>
+
+  <!-- ===== 11.1 Current State ===== -->
+  <h3>11.1 Current State — Existing TDS Data Flow</h3>
+
+  <div class="info">
+    <h4>What exists today</h4>
+    <p>The current TDS path is designed for <strong>Vendor-Payments</strong> and carries only pre-computed values.
+       BB+ needs the new "compute input" path, but the existing path <strong>must remain untouched</strong>.</p>
+  </div>
+
+  <table>
+    <thead>
+      <tr><th>Layer</th><th>File</th><th>Current Struct / Field</th><th>What it does today</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>API DTO (V2)</strong></td>
+        <td><code>internal/app/dtos/payout_create.go:19</code></td>
+        <td><code>FundAccountPayoutRequestV2.TDS</code> → <code>TDSDetails</code></td>
+        <td>
+          Accepts <code>tds</code> object from request JSON.<br>
+          Field: <code>TDS TDSDetails `json:"tds" binding:"omitempty"`</code>
+        </td>
+      </tr>
+      <tr>
+        <td><strong>API DTO (internal)</strong></td>
+        <td><code>internal/app/dtos/payoutCreate.go:35</code></td>
+        <td><code>FundAccountPayoutRequest.TDS</code> → same <code>TDSDetails</code></td>
+        <td>
+          V2 is marshalled → unmarshalled into this struct in <code>CreatePayoutToFundAccountV2</code>
+        </td>
+      </tr>
+      <tr>
+        <td><strong>TDSDetails</strong></td>
+        <td><code>internal/app/dtos/payoutDetails.go:7</code></td>
+        <td>
+<pre><code>type TDSDetails struct {
+  TDSCategoryID nulls.UInt32  `json:"category_id" binding:"required"`
+  TDSAmount     nulls.Float64 `json:"amount" binding:"required"`
+}</code></pre>
+        </td>
+        <td>
+          Only two fields: <code>category_id</code> and <code>amount</code>.<br>
+          Both are <strong>pre-computed by the caller</strong> — Payouts does not compute anything.
+        </td>
+      </tr>
+      <tr>
+        <td><strong>Core V2</strong></td>
+        <td><code>internal/app/payouts/core.go:469</code></td>
+        <td><code>CreatePayoutToFundAccountV2()</code></td>
+        <td>
+          1. Marshals <code>FundAccountPayoutRequestV2</code> → <code>FundAccountPayoutRequest</code> (line 494–496)<br>
+          2. Fetches dependencies (banking account, merchant config, fund account, purpose)<br>
+          3. Calls <code>processorFactory.GetProcessor(...).CreatePayout(fundAccountPayoutRequest)</code> (line 598–615)<br>
+          <strong>No TDS compute call exists here today.</strong>
+        </td>
+      </tr>
+      <tr>
+        <td><strong>Processor</strong></td>
+        <td><code>internal/app/payouts/processor/base.go:404</code></td>
+        <td><code>SetPayoutDetailsInPayout()</code></td>
+        <td>
+          Creates <code>PayoutDetails</code> and wires TDS into the DB entity:<br>
+          <code>payoutDetailsObj.SetTDSCategoryID(params.TDS.TDSCategoryID)</code> (line 423)<br>
+          <code>payoutDetailsObj.SetAdditionalInfo(subtotalAmount, params.TDS.TDSAmount, ...)</code> (line 424)<br>
+          Result: <code>tds_category_id</code> column + <code>additional_info.tds_amount</code> JSON field
+        </td>
+      </tr>
+      <tr>
+        <td><strong>DB Model</strong></td>
+        <td><code>internal/app/payoutDetails/model.go:22</code></td>
+        <td><code>PayoutDetails</code> struct</td>
+        <td>
+          <code>TDSCategoryID nulls.UInt32</code> → DB column <code>tds_category_id</code><br>
+          <code>AdditionalInfo datatypes.JSONType[AdditionalInfoStruct]</code> → JSON column
+        </td>
+      </tr>
+      <tr>
+        <td><strong>AdditionalInfo</strong></td>
+        <td><code>internal/app/payoutDetails/additional_info_model.go:14</code></td>
+        <td><code>AdditionalInfoStruct</code></td>
+        <td>
+          Contains: <code>SubtotalAmount</code>, <code>TDSAmount</code>, <code>Attachments</code>, <code>MerchantDetail</code><br>
+          No BB+ compute fields exist today.
+        </td>
+      </tr>
+      <tr>
+        <td><strong>Kafka Publish</strong></td>
+        <td><code>internal/app/payouts/core.go:7858</code></td>
+        <td><code>ProcessTdsForPayout()</code></td>
+        <td>
+          Fires when <code>MoneyTransferredStatus[payout.GetStatus()]</code> is true.<br>
+          Reads <code>tds_category_id</code> + <code>tds_amount</code> from <code>PayoutDetails</code><br>
+          Publishes <code>TdsMessage</code> to <code>TdsTopic</code> via event client.<br>
+          Kafka message today: <code>{ entity_id, entity_type, entity_status, merchant_id, tds_category_id, tds_amount }</code>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ===== 11.2 Struct Changes (Minimal for Approach 3) ===== -->
+  <h3>11.2 Required Struct Changes (Minimal)</h3>
+
+  <div class="info">
+    <h4>Pre-Compute Pattern: Much Simpler Changes</h4>
+    <p>
+      Unlike Approach 1, we don't need compute input fields or internal result storage.
+      We simply add optional fields to receive pre-computed values from the caller.
+    </p>
+  </div>
+
+  <h4>11.2.1 Extend <code>TDSDetails</code> — add BB+ pre-computed fields</h4>
+  <p><strong>File:</strong> <code>internal/app/dtos/payoutDetails.go</code></p>
+  <pre><code>type TDSDetails struct {
+    // ═══════════════════════════════════════════════════════════
+    // EXISTING FIELDS (Vendor-Payments - unchanged)
+    // ═══════════════════════════════════════════════════════════
+    TDSCategoryID nulls.UInt32  `json:"category_id" binding:"omitempty"`
+    TDSAmount     nulls.Float64 `json:"amount" binding:"omitempty"`
+
+    // ═══════════════════════════════════════════════════════════
+    // NEW FIELDS (BB+ - all optional, PRE-COMPUTED by caller)
+    // ═══════════════════════════════════════════════════════════
+
+    // Routing indicator: "bb_plus" routes to Tax-Compliance Kafka topic
+    Source string `json:"source" binding:"omitempty"`
+
+    // Gross amount for audit trail (amount field in parent is NET)
+    GrossAmount nulls.Int64 `json:"gross_amount" binding:"omitempty"`
+
+    // Full breakdown from Tax-Compliance compute response (passed by caller)
+    Breakdown *TDSBreakdown `json:"breakdown" binding:"omitempty"`
+}
+
+// TDSBreakdown — pre-computed breakdown from Tax-Compliance
+type TDSBreakdown struct {
+    BasicTaxAmount float64 `json:"basic_tax_amount"`
+    Surcharge      float64 `json:"surcharge"`
+    Cess           float64 `json:"cess"`
+    EffectiveRate  float64 `json:"effective_rate"`  // Percentage (not basis points)
+    CategoryCode   string  `json:"category_code"`   // "194J"
+    IsLdcApplied   bool    `json:"is_ldc_applied"`
+    LdcRate        float64 `json:"ldc_rate,omitempty"`
+    MajorHead      int     `json:"major_head"`
+    MinorHead      int     `json:"minor_head"`
+}
+
+// IsBBPlusFlow returns true if this is a BB+ TDS payout
+func (t *TDSDetails) IsBBPlusFlow() bool {
+    return t.Source == "bb_plus"
+}</code></pre>
+
+  <div class="recommendation">
+    <h4>Note: No Amount Changes Required</h4>
+    <p>
+      Unlike Approach 1, we do NOT change the <code>amount</code> field binding or semantics.
+      The caller sends NET amount (same as today). Payouts does NOT mutate the amount.
+    </p>
+  </div>
+
+  <h4>11.2.2 Extend <code>AdditionalInfoStruct</code> — store BB+ fields</h4>
+  <p><strong>File:</strong> <code>internal/app/payoutDetails/additional_info_model.go</code></p>
+  <pre><code>type AdditionalInfoStruct struct {
+    // ═══════════════════════════════════════════════════════════
+    // EXISTING FIELDS (unchanged)
+    // ═══════════════════════════════════════════════════════════
+    SubtotalAmount *nulls.Float64  `json:"subtotal_amount,omitempty"`
+    TDSAmount      *nulls.Float64  `json:"tds_amount,omitempty"`
+    Attachments    []Attachment    `json:"attachments,omitempty"`
+    MerchantDetail *MerchantDetail `json:"merchant_detail,omitempty"`
+
+    // ═══════════════════════════════════════════════════════════
+    // NEW FIELDS (BB+ - just storage, passed from request)
+    // ═══════════════════════════════════════════════════════════
+    TDSSource      string        `json:"tds_source,omitempty"`       // "bb_plus"
+    TDSGrossAmount *nulls.Int64  `json:"tds_gross_amount,omitempty"` // Original gross
+    TDSBreakdown   *TDSBreakdown `json:"tds_breakdown,omitempty"`    // Full breakdown
+}
+
+// GetTDSSource returns the TDS source (for topic routing)
+func (a *AdditionalInfoStruct) GetTDSSource() string {
+    if a == nil {
+        return ""
+    }
+    return a.TDSSource
+}</code></pre>
+
+  <!-- ===== 11.3 Kafka Topic Routing (Only Core Logic Change) ===== -->
+  <h3>11.3 Kafka Topic Routing — The Only Core Logic Change</h3>
+
+  <p><strong>File:</strong> <code>internal/app/payouts/core.go</code> — <code>ProcessTdsForPayout()</code></p>
+
+  <div class="recommendation">
+    <h4>Pre-Compute Pattern: No Changes to CreatePayoutToFundAccountV2()</h4>
+    <p>
+      Unlike Approach 1, we do NOT add any compute call to <code>CreatePayoutToFundAccountV2()</code>.
+      The payout creation flow remains unchanged. The only core logic change is in
+      <code>ProcessTdsForPayout()</code> — route to different Kafka topic based on <code>source</code>.
+    </p>
+  </div>
+
+  <h4>11.3.1 Add Topic Constant</h4>
+  <p><strong>File:</strong> <code>internal/app/payouts/constants.go</code> (or <code>core.go</code>)</p>
+  <pre><code>const (
+    TdsTopic       = "add-tds-entry"          // Existing → Vendor-Payments
+    TdsTopicBBPlus = "add-tds-entry-bb-plus"  // NEW → Tax-Compliance
+)</code></pre>
+
+  <h4>11.3.2 Modify ProcessTdsForPayout()</h4>
+  <p><strong>File:</strong> <code>internal/app/payouts/core.go:7858</code></p>
+  <pre><code>func (c Core) ProcessTdsForPayout(ctx context.Context, payout *Payout, oldStatus string) errors.IError {
+    if MoneyTransferredStatus[payout.GetStatus()] == true {
+        payoutDetails := payout.GetPayoutDetails(ctx)
+        additionalInfo := payoutDetails.GetAdditionalInfo()
+
+        // ════════════════════════════════════════════════════════════
+        // ONLY CHANGE: Determine topic based on source
+        // ════════════════════════════════════════════════════════════
+        topic := TdsTopic  // Default: Vendor-Payments
+        if additionalInfo.GetTDSSource() == "bb_plus" {
+            topic = TdsTopicBBPlus  // BB+: Tax-Compliance
+        }
+
+        // Build message (extend for BB+ if needed - see 11.4)
+        message := c.buildTdsMessage(ctx, payout, payoutDetails, additionalInfo)
+
+        eventClient := provider.GetEventClient(ctx)
+        eventClient.PublishEvent(message, topic)
+    }
+    return nil
+}</code></pre>
+
+  <div class="info">
+    <h4>Why This Is Safe</h4>
+    <ul>
+      <li><strong>Backward compatible:</strong> If <code>source</code> is empty (non-BB+ payouts), uses existing topic</li>
+      <li><strong>No impact to Vendor-Payments:</strong> Only payouts with <code>source = "bb_plus"</code> go to new topic</li>
+      <li><strong>Minimal code change:</strong> Just an if statement</li>
+      <li><strong>Easy to test:</strong> Unit test topic selection based on source value</li>
+    </ul>
+  </div>
+
+  <!-- ===== 11.4 PayoutDetails Persistence (Simpler for Approach 3) ===== -->
+  <h3>11.4 Store BB+ Fields in PayoutDetails</h3>
+
+  <p><strong>File:</strong> <code>internal/app/payouts/processor/base.go:404</code> — <code>SetPayoutDetailsInPayout()</code></p>
+
+  <div class="info">
+    <h4>Pre-Compute Pattern: Just Pass Through Values</h4>
+    <p>
+      Unlike Approach 1, we don't need to capture "before" and "after" values.
+      The caller sends pre-computed values; we just store them.
+    </p>
+  </div>
+
+  <pre><code>// processor/base.go — SetPayoutDetailsInPayout()
+// EXISTING (unchanged):
+payoutDetailsObj.SetTDSCategoryID(params.TDS.TDSCategoryID)        // line 423
+payoutDetailsObj.SetAdditionalInfo(                                   // line 424
+    params.SubtotalAmount,
+    params.TDS.TDSAmount,
+    attachmentsInterfaceSlice,
+    &amp;params.RemitterDetails,
+)
+
+// NEW — add after line 424:
+// BB+ only: persist source, gross_amount, and breakdown (all from request)
+if params.TDS.IsBBPlusFlow() {
+    info := payoutDetailsObj.GetAdditionalInfo().(*payoutDetails.AdditionalInfoStruct)
+    info.TDSSource = params.TDS.Source
+    if params.TDS.GrossAmount.Valid {
+        info.TDSGrossAmount = &amp;params.TDS.GrossAmount
+    }
+    if params.TDS.Breakdown != nil {
+        info.TDSBreakdown = params.TDS.Breakdown
+    }
+    payoutDetailsObj.AdditionalInfo.Data = *info
+}</code></pre>
+
+  <div class="info">
+    <h4>What gets written to <code>payout_details.additional_info</code> (JSON column)</h4>
+    <pre><code>{
+  "tds_amount": 100000,                // Existing field
+  "tds_source": "bb_plus",             // NEW — for topic routing
+  "tds_gross_amount": 1000000,         // NEW — original gross for audit
+  "tds_breakdown": {                   // NEW — full breakdown for Kafka
+    "basic_tax_amount": 90000,
+    "surcharge": 0,
+    "cess": 10000,
+    "effective_rate": 10.0,
+    "category_code": "194J",
+    "is_ldc_applied": false,
+    "major_head": 21,
+    "minor_head": 200
+  }
+}</code></pre>
+  </div>
+
+  <!-- ===== 11.5 Kafka Message (Simpler for Approach 3) ===== -->
+  <h3>11.5 Kafka Message for Tax-Compliance</h3>
+
+  <p><strong>File:</strong> <code>internal/app/payouts/core.go</code> — <code>buildTdsMessage()</code></p>
+
+  <div class="info">
+    <h4>Current Kafka message (Vendor-Payments path)</h4>
+    <pre><code>TdsData {
+    entity_id, entity_type, entity_status, merchant_id,
+    tds_category_id, tds_amount                            // only 2 TDS fields
+}</code></pre>
+    <p>For BB+ payouts, we include the additional fields stored in <code>additional_info</code>.</p>
+  </div>
+
+  <pre><code>// core.go — Extend TdsData struct
+type TdsData struct {
+    EntityID      string         `json:"entity_id"`
+    EntityType    string         `json:"entity_type"`
+    EntityStatus  string         `json:"entity_status"`
+    MerchantID    string         `json:"merchant_id"`
+    TdsCategoryID nulls.UInt32   `json:"tds_category_id"`
+    TdsAmount     *nulls.Float64 `json:"tds_amount"`
+
+    // BB+ only — included when source = "bb_plus"
+    Source      string                            `json:"source,omitempty"`
+    GrossAmount *nulls.Int64                      `json:"gross_amount,omitempty"`
+    Breakdown   *payoutDetails.TDSBreakdown       `json:"breakdown,omitempty"`
+}
+
+// core.go — buildTdsMessage()
+func (c Core) buildTdsMessage(ctx context.Context, payout *Payout, payoutDetails *PayoutDetails, additionalInfo *AdditionalInfoStruct) TdsData {
+    data := TdsData{
+        EntityID:      payout.GetID(),
+        EntityType:    payout.EntityName(),
+        EntityStatus:  payout.Status,
+        MerchantID:    payout.MerchantID,
+        TdsCategoryID: payoutDetails.TDSCategoryID,
+        TdsAmount:     additionalInfo.TDSAmount,
+    }
+
+    // BB+ additions — included when source is set
+    if additionalInfo.TDSSource != "" {
+        data.Source = additionalInfo.TDSSource
+        data.GrossAmount = additionalInfo.TDSGrossAmount
+        data.Breakdown = additionalInfo.TDSBreakdown
+    }
+
+    return data
+}</code></pre>
+
+  <h4>Sample BB+ Kafka Message</h4>
+  <pre><code>{
+  "entity_id": "pout_ABC123",
+  "entity_type": "payout",
+  "entity_status": "processed",
+  "merchant_id": "merch_XYZ",
+  "tds_category_id": 14,
+  "tds_amount": 100000,
+  "source": "bb_plus",
+  "gross_amount": 1000000,
+  "breakdown": {
+    "basic_tax_amount": 90000,
+    "surcharge": 0,
+    "cess": 10000,
+    "effective_rate": 10.0,
+    "category_code": "194J",
+    "is_ldc_applied": false,
+    "major_head": 21,
+    "minor_head": 200
+  }
+}</code></pre>
+
+  <!-- ===== 11.6 File Change Summary (Approach 3 — Minimal) ===== -->
+  <h3>11.5 File Change Summary</h3>
+
+  <div class="recommendation">
+    <h4>Approach 3: Significantly Fewer Changes Than Approach 1</h4>
+    <p>
+      The Pre-Compute Pattern requires only <strong>4 file modifications</strong> in Payouts,
+      with <strong>no new files</strong>. Compare to Approach 1 which required a new S2S client,
+      compute logic, and amount mutation.
+    </p>
+  </div>
+
+  <table>
+    <thead>
+      <tr><th>File</th><th>Change Type</th><th>What</th><th>Risk</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>internal/app/dtos/payoutDetails.go</code></td>
+        <td><span style="color:#ea580c;">Modify</span></td>
+        <td>
+          Add <code>Source</code>, <code>GrossAmount</code>, <code>Breakdown</code> fields to TDSDetails.<br>
+          Add <code>TDSBreakdown</code> struct.<br>
+          Add <code>IsBBPlusFlow()</code> helper method.
+        </td>
+        <td style="color:#16a34a;">Low</td>
+      </tr>
+      <tr>
+        <td><code>internal/app/payoutDetails/additional_info_model.go</code></td>
+        <td><span style="color:#ea580c;">Modify</span></td>
+        <td>
+          Add <code>TDSSource</code>, <code>TDSGrossAmount</code>, <code>TDSBreakdown</code> fields to AdditionalInfoStruct.<br>
+          Add <code>GetTDSSource()</code> helper method.
+        </td>
+        <td style="color:#16a34a;">Low</td>
+      </tr>
+      <tr>
+        <td><code>internal/app/payouts/core.go</code></td>
+        <td><span style="color:#ea580c;">Modify</span></td>
+        <td>
+          1. Add <code>TdsTopicBBPlus</code> constant.<br>
+          2. Add topic routing in <code>ProcessTdsForPayout()</code>.<br>
+          3. Extend <code>TdsData</code> struct with BB+ fields.<br>
+          4. Modify <code>buildTdsMessage()</code> to include BB+ fields.
+        </td>
+        <td style="color:#16a34a;">Low</td>
+      </tr>
+      <tr>
+        <td><code>internal/app/payouts/processor/base.go</code></td>
+        <td><span style="color:#ea580c;">Modify</span></td>
+        <td>
+          In <code>SetPayoutDetailsInPayout()</code>: store BB+ fields in AdditionalInfo.
+        </td>
+        <td style="color:#16a34a;">Low</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h4>What Does NOT Change (Key Safety)</h4>
+  <table>
+    <thead>
+      <tr><th>Component</th><th>Status</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>CreatePayoutToFundAccountV2()</code> core logic</td>
+        <td style="color:#16a34a;"><strong>UNCHANGED</strong></td>
+      </tr>
+      <tr>
+        <td>Amount handling (no mutation)</td>
+        <td style="color:#16a34a;"><strong>UNCHANGED</strong></td>
+      </tr>
+      <tr>
+        <td>Validation logic</td>
+        <td style="color:#16a34a;"><strong>UNCHANGED</strong></td>
+      </tr>
+      <tr>
+        <td>Processor flow</td>
+        <td style="color:#16a34a;"><strong>UNCHANGED</strong></td>
+      </tr>
+      <tr>
+        <td>Public /v1/payouts API</td>
+        <td style="color:#16a34a;"><strong>UNCHANGED</strong></td>
+      </tr>
+      <tr>
+        <td>S2S calls (none added)</td>
+        <td style="color:#16a34a;"><strong>NONE</strong></td>
+      </tr>
+      <tr>
+        <td>New client files</td>
+        <td style="color:#16a34a;"><strong>NONE NEEDED</strong></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h4>Comparison: Approach 1 vs Approach 3 File Changes</h4>
+  <table>
+    <thead>
+      <tr><th>Metric</th><th>Approach 1</th><th>Approach 3 (Pre-Compute)</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Files modified</td>
+        <td>5</td>
+        <td class="pro">4</td>
+      </tr>
+      <tr>
+        <td>New files</td>
+        <td>1 (tds_compute_client.go)</td>
+        <td class="pro">0</td>
+      </tr>
+      <tr>
+        <td>Core logic changes</td>
+        <td class="con">CreatePayoutToFundAccountV2 modified</td>
+        <td class="pro">No core logic changes</td>
+      </tr>
+      <tr>
+        <td>Amount mutation</td>
+        <td class="con">Yes (high risk)</td>
+        <td class="pro">No</td>
+      </tr>
+      <tr>
+        <td>S2S client</td>
+        <td class="con">New HTTP client needed</td>
+        <td class="pro">None needed</td>
+      </tr>
+      <tr>
+        <td>Test changes</td>
+        <td class="con">Mock Tax-Compliance in tests</td>
+        <td class="pro">Minimal test changes</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <hr>
+
+  <h2>12. Migration &amp; Rollout</h2>
+
+  <h3>12.1 Feature Flag</h3>
+  <p>Use a merchant-level or global feature flag to control BB+ TDS enablement:</p>
+  <pre><code>if featureFlag.IsEnabled("bb_plus_tds", merchantID) {
+    // Allow BB+ TDS payouts
+    // Route to add-tds-entry-bb-plus topic
+} else {
+    // Reject payouts with source = "bb_plus"
+    // Or silently ignore BB+ fields
+}</code></pre>
+
+  <h3>12.2 Rollout Phases</h3>
+  <table>
+    <thead>
+      <tr><th>Phase</th><th>Scope</th><th>Description</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td>Internal testing</td>
+        <td>Test merchants only; validate end-to-end flow</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td>Beta merchants</td>
+        <td>10-20 selected merchants; monitor Kafka consumer lag</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>General availability</td>
+        <td>All BB+ merchants with TDS feature enabled</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>12.3 Monitoring</h3>
+  <ul>
+    <li><strong>Kafka lag:</strong> Monitor <code>add-tds-entry-bb-plus</code> consumer lag</li>
+    <li><strong>TDS Payment creation rate:</strong> Track success/failure ratio</li>
+    <li><strong>Payout latency:</strong> Should remain unchanged (no S2S call)</li>
+    <li><strong>Error alerts:</strong> TDS Payment creation failures, topic routing errors</li>
+  </ul>
+
+  <h3>12.4 Rollback Procedure</h3>
+
+  <div class="warning">
+    <h4>Rollback Triggers</h4>
+    <p>Initiate rollback if any of the following occur:</p>
+    <ul>
+      <li>TDS Payment creation error rate &gt; 5% for more than 10 minutes</li>
+      <li>Kafka consumer lag &gt; 100,000 messages for more than 30 minutes</li>
+      <li>Critical bug discovered affecting money movement</li>
+      <li>Manual trigger from on-call with VP approval</li>
+    </ul>
+  </div>
+
+  <h4>12.4.1 Rollback Steps</h4>
+
+  <table>
+    <thead>
+      <tr><th>Step</th><th>Action</th><th>Owner</th><th>Verification</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td><strong>Disable Feature Flag</strong><br>Set <code>bb_plus_tds_enabled = false</code> for all merchants</td>
+        <td>On-call</td>
+        <td>New BB+ payouts rejected with clear error</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td><strong>Stop Kafka Consumer</strong><br>Pause <code>add-tds-entry-bb-plus</code> consumer</td>
+        <td>On-call</td>
+        <td>Consumer lag stops increasing</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td><strong>Assess In-Flight Payouts</strong><br>Count payouts created with BB+ TDS in last 30 minutes</td>
+        <td>On-call</td>
+        <td>Document count for reconciliation</td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td><strong>Drain to DLQ (if needed)</strong><br>Move pending messages to DLQ for later processing</td>
+        <td>On-call + Platform</td>
+        <td>Main topic empty; DLQ has messages</td>
+      </tr>
+      <tr>
+        <td>5</td>
+        <td><strong>Communicate to Stakeholders</strong><br>Notify Product, Ops, and affected merchants</td>
+        <td>On-call</td>
+        <td>Email/Slack sent</td>
+      </tr>
+      <tr>
+        <td>6</td>
+        <td><strong>Post-Rollback Reconciliation</strong><br>Compare payouts vs TDS Payments; fix discrepancies</td>
+        <td>Engineering + Ops</td>
+        <td>Reconciliation report clean</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h4>12.4.2 Post-Rollback Recovery</h4>
+
+  <pre><code>// Reconciliation query: Find orphaned BB+ payouts without TDS Payments
+SELECT p.id, p.merchant_id, pd.tds_amount
+FROM payouts p
+JOIN payout_details pd ON p.id = pd.payout_id
+WHERE pd.tds_source = 'bb_plus'
+AND p.status = 'processed'
+AND p.id NOT IN (
+    SELECT source_transaction_id FROM tds_payments
+    WHERE transaction_source = 'BB_PLUS'
+);
+
+// For each orphaned payout:
+// Option A: Replay from DLQ
+// Option B: Manual TDS Payment creation via Ops dashboard
+// Option C: Mark as "TDS_PENDING" for post-fix processing</code></pre>
+
+  <h4>12.4.3 Re-enablement Criteria</h4>
+
+  <ul>
+    <li>Root cause identified and fixed</li>
+    <li>Fix deployed to staging, all tests passing</li>
+    <li>Load test passed in staging</li>
+    <li>DLQ messages successfully replayed (if any)</li>
+    <li>Sign-off from Engineering Lead and Product</li>
+    <li>Phased re-enablement starting with beta merchants</li>
+  </ul>
+
+  <hr>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════════════ -->
+  <!-- SECTION 13: PAYOUT REVERSAL HANDLING                                                 -->
+  <!-- ═══════════════════════════════════════════════════════════════════════════════════ -->
+
+  <h2>13. Payout Reversal Handling</h2>
+
+  <p class="muted">
+    This section defines how payout reversals interact with BB+ TDS. Since TDS deduction from the
+    customer account happens on the 1st-4th of each month (not at payout time), reversals must be
+    handled differently depending on when they occur in the TDS lifecycle.
+  </p>
+
+  <h3>13.1 TDS Money Movement Timeline</h3>
+
+  <div class="info">
+    <h4>Understanding the Timeline</h4>
+    <p>
+      TDS amount is NOT deducted from the customer account at payout time. Instead:
+    </p>
+    <ol>
+      <li><strong>Payout Creation:</strong> Vendor receives NET amount immediately</li>
+      <li><strong>TDS Recorded:</strong> TDS details stored in <code>payout_details</code></li>
+      <li><strong>Kafka Event:</strong> On terminal state (PROCESSED), event published to <code>add-tds-entry-bb-plus</code></li>
+      <li><strong>TDS Deduction:</strong> On 1st-4th of next month, TDS amount deducted from customer account → Compliance account</li>
+      <li><strong>TDS Payment to Govt:</strong> Compliance pays TDS to government before 7th</li>
+    </ol>
+  </div>
+
+  <div class="flow-container">
+    <div class="flow-title">TDS Money Movement Timeline</div>
+    <pre style="font-family: monospace; font-size: 13px; line-height: 1.5;">
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                              TDS MONEY MOVEMENT TIMELINE                                 │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                          │
+│  During Month (e.g., January)           1st-4th of Next Month      7th of Next Month    │
+│  ═════════════════════════════          ══════════════════════     ════════════════     │
+│                                                                                          │
+│  ┌──────────────┐                       ┌──────────────────┐       ┌────────────────┐   │
+│  │ Payout       │  NET amount           │ TDS Deduction    │       │ TDS Payment    │   │
+│  │ Created      │ ───────────────────▶  │ Customer Account │       │ to Government  │   │
+│  │              │  to Vendor            │ → Compliance     │       │                │   │
+│  └──────┬───────┘                       └────────┬─────────┘       └────────────────┘   │
+│         │                                        │                                       │
+│         │ Kafka: add-tds-entry-bb-plus           │                                       │
+│         ▼                                        ▼                                       │
+│  ┌──────────────┐                       ┌──────────────────┐                            │
+│  │ TDS Payment  │                       │ TDS Payment      │                            │
+│  │ Record       │  status: PENDING      │ Record           │  status: PAID              │
+│  │ Created      │ ─────────────────────▶│ Updated          │                            │
+│  └──────────────┘                       └──────────────────┘                            │
+│                                                                                          │
+│  ◀──────────────── CASE 1 ────────────────▶ ◀─ CASE 2 ─▶     ◀────── CASE 3 ──────▶    │
+│                                                                                          │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
+    </pre>
+  </div>
+
+  <h3>13.2 Reversal Scenarios</h3>
+
+  <p>
+    When a payout is reversed (status changes to <code>REVERSED</code>), the handling depends on
+    where in the TDS lifecycle the reversal occurs:
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Scenario</th>
+        <th>When</th>
+        <th>TDS State</th>
+        <th>Action Required</th>
+        <th>Owner</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Case 1</strong></td>
+        <td>Reversal <strong>before</strong> TDS deduction from customer account</td>
+        <td>TDS recorded but not yet deducted</td>
+        <td>
+          <ul>
+            <li>BB+ notifies Compliance Service of reversal</li>
+            <li>Compliance marks TDS Payment as <strong>CANCELLED</strong></li>
+            <li>TDS amount NOT deducted from customer</li>
+          </ul>
+        </td>
+        <td>BB+ + Compliance</td>
+      </tr>
+      <tr>
+        <td><strong>Case 2</strong></td>
+        <td>Reversal <strong>after</strong> TDS deduction but <strong>before</strong> payment to govt</td>
+        <td>TDS deducted, in Compliance account</td>
+        <td>
+          <ul>
+            <li>BB+ notifies Compliance Service of reversal</li>
+            <li>Compliance marks TDS Payment as <strong>REFUNDED</strong></li>
+            <li>TDS amount refunded back to customer account</li>
+          </ul>
+        </td>
+        <td>BB+ + Compliance</td>
+      </tr>
+      <tr>
+        <td><strong>Case 3</strong></td>
+        <td>Reversal <strong>after</strong> TDS paid to government</td>
+        <td>TDS paid to govt</td>
+        <td>
+          <ul>
+            <li>BB+ notifies Compliance Service of reversal</li>
+            <li>Compliance alerts Ops team</li>
+            <li><strong>Manual recovery</strong> from customer account</li>
+            <li>TDS cannot be recovered from govt</li>
+          </ul>
+        </td>
+        <td>Ops (Manual)</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>13.3 Implementation Details</h3>
+
+  <h4>13.3.1 Reversal Notification to Compliance</h4>
+
+  <p>
+    When a BB+ TDS payout reaches <code>REVERSED</code> status, Payouts must notify the Compliance Service.
+    This can be done via:
+  </p>
+
+  <ul>
+    <li><strong>Option A:</strong> Publish to same <code>add-tds-entry-bb-plus</code> topic with <code>entity_status: "reversed"</code></li>
+    <li><strong>Option B:</strong> Publish to separate <code>tds-reversal-bb-plus</code> topic</li>
+  </ul>
+
+  <div class="recommendation">
+    <h4>Recommendation: Use Same Topic with Status</h4>
+    <p>
+      Use Option A — publish to the same <code>add-tds-entry-bb-plus</code> topic with <code>entity_status: "reversed"</code>.
+      This keeps the architecture simpler and allows Compliance to handle both cases in one consumer.
+    </p>
+  </div>
+
+  <h4>13.3.2 Modify ProcessTdsForPayout() for Reversals</h4>
+
+  <p><strong>File:</strong> <code>internal/app/payouts/core.go</code></p>
+
+  <pre><code>func (c Core) ProcessTdsForPayout(ctx context.Context, payout *Payout, oldStatus string) errors.IError {
+    // Trigger on PROCESSED (existing) OR REVERSED (new)
+    if MoneyTransferredStatus[payout.GetStatus()] || payout.GetStatus() == "reversed" {
+        payoutDetails := payout.GetPayoutDetails(ctx)
+        additionalInfo := payoutDetails.GetAdditionalInfo()
+
+        // Only process if this is a BB+ TDS payout
+        if additionalInfo.GetTDSSource() != "bb_plus" {
+            // Non-BB+ flow (Vendor-Payments) - existing behavior
+            if MoneyTransferredStatus[payout.GetStatus()] {
+                // ... existing Vendor-Payments logic ...
+            }
+            return nil
+        }
+
+        // BB+ TDS flow
+        topic := TdsTopicBBPlus
+
+        // Build message with current status (processed OR reversed)
+        message := c.buildTdsMessage(ctx, payout, payoutDetails, additionalInfo)
+
+        eventClient := provider.GetEventClient(ctx)
+        eventClient.PublishEvent(message, topic)
+    }
+    return nil
+}</code></pre>
+
+  <h4>13.3.3 Kafka Message for Reversal</h4>
+
+  <pre><code>// PROCESSED payout message
+{
+  "entity_id": "pout_ABC123",
+  "entity_type": "payout",
+  "entity_status": "processed",      // Terminal success state
+  "merchant_id": "merch_XYZ",
+  "tds_category_id": 14,
+  "tds_amount": 100000,
+  "source": "bb_plus",
+  "gross_amount": 1000000,
+  "breakdown": { ... }
+}
+
+// REVERSED payout message
+{
+  "entity_id": "pout_ABC123",
+  "entity_type": "payout",
+  "entity_status": "reversed",       // Reversal state
+  "merchant_id": "merch_XYZ",
+  "tds_category_id": 14,
+  "tds_amount": 100000,
+  "source": "bb_plus",
+  "gross_amount": 1000000,
+  "breakdown": { ... }
+}</code></pre>
+
+  <h4>13.3.4 Compliance Service Handling</h4>
+
+  <p>
+    The Compliance Service consumer must handle both <code>processed</code> and <code>reversed</code> events:
+  </p>
+
+  <pre><code>// Compliance Service - Kafka Consumer (pseudo-code)
+
+func handleTdsEvent(event TdsEvent) {
+    switch event.EntityStatus {
+    case "processed":
+        // Create TDS Payment record with status PENDING
+        createTdsPayment(event)
+
+    case "reversed":
+        // Find existing TDS Payment by source_transaction_id
+        tdsPayment := findBySourceTransactionId(event.EntityId)
+
+        if tdsPayment == nil {
+            // No TDS Payment exists - nothing to do
+            return
+        }
+
+        switch tdsPayment.Status {
+        case "PENDING":
+            // Case 1: TDS not yet deducted
+            tdsPayment.Status = "CANCELLED"
+            // No money movement needed
+
+        case "DEDUCTED":
+            // Case 2: TDS deducted but not paid to govt
+            tdsPayment.Status = "REFUNDED"
+            // Initiate refund to customer account
+            refundToCustomer(tdsPayment)
+
+        case "PAID":
+            // Case 3: TDS already paid to govt
+            tdsPayment.Status = "REVERSAL_PENDING"
+            // Alert Ops for manual recovery
+            alertOpsForManualRecovery(tdsPayment)
+        }
+
+        saveTdsPayment(tdsPayment)
+    }
+}</code></pre>
+
+  <h3>13.4 Edge Cases</h3>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Edge Case</th>
+        <th>Description</th>
+        <th>Handling</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Duplicate Reversal Events</strong></td>
+        <td>Same reversal event received multiple times</td>
+        <td>Idempotent handling via <code>source_transaction_id</code> — ignore if already processed</td>
+      </tr>
+      <tr>
+        <td><strong>Reversal Before Processed Event</strong></td>
+        <td>Reversal event arrives before processed event (race condition)</td>
+        <td>See detailed handling below (Section 13.4.1)</td>
+      </tr>
+      <tr>
+        <td><strong>Partial Reversal</strong></td>
+        <td>Only part of the payout is reversed</td>
+        <td>Not supported in current payout model — full reversal only</td>
+      </tr>
+      <tr>
+        <td><strong>Customer Insufficient Balance for TDS Deduction</strong></td>
+        <td>Customer doesn't have funds when TDS deduction attempted</td>
+        <td>Retry mechanism with customer notifications; fallback to manual handling</td>
+      </tr>
+      <tr>
+        <td><strong>Reversal During TDS Deduction Window (1st-4th)</strong></td>
+        <td>Reversal happens while bulk TDS deduction is in progress</td>
+        <td>Compliance must check reversal status before deducting each transaction</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h4>13.4.1 Handling Reversal Before Processed Event (Race Condition)</h4>
+
+  <div class="warning">
+    <h4>Race Condition Scenario</h4>
+    <pre><code>Timeline:
+  T=0:    Payout created
+  T=100ms: Payout processed → Kafka "processed" event queued
+  T=150ms: Network partition delays "processed" event
+  T=200ms: Payout reversed → Kafka "reversed" event sent
+  T=250ms: Consumer receives "reversed" BEFORE "processed"
+  T=300ms: Consumer receives delayed "processed"
+
+Problem: If not handled, TDS Payment created from "processed" event
+         even though payout is already reversed.</code></pre>
+  </div>
+
+  <h4>Solution: Pending Reversal Table</h4>
+
+  <pre><code>// Table: pending_reversals
+CREATE TABLE pending_reversals (
+    payout_id VARCHAR(20) PRIMARY KEY,
+    merchant_id VARCHAR(14) NOT NULL,
+    reversed_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+// Index for cleanup
+CREATE INDEX idx_pending_reversals_created_at ON pending_reversals(created_at);</code></pre>
+
+  <h4>Consumer Logic</h4>
+
+  <pre><code>func handleTdsEvent(event TdsEvent) error {
+    switch event.EntityStatus {
+
+    case "reversed":
+        // Check if TDS Payment exists
+        tdsPayment := db.FindBySourceTransactionId(event.EntityId)
+
+        if tdsPayment != nil {
+            // Normal reversal handling (TDS Payment exists)
+            handleReversal(tdsPayment)
+        } else {
+            // TDS Payment doesn't exist yet — store pending reversal
+            pendingReversal := PendingReversal{
+                PayoutId:   event.EntityId,
+                MerchantId: event.MerchantId,
+                ReversedAt: time.Now(),
+            }
+            db.InsertOrIgnore(pendingReversal)  // Idempotent
+            log.Info("Stored pending reversal", "payout_id", event.EntityId)
+        }
+
+    case "processed":
+        // Check for pending reversal BEFORE creating TDS Payment
+        pendingReversal := db.FindPendingReversal(event.EntityId)
+
+        if pendingReversal != nil {
+            // Reversal arrived before processed — create as CANCELLED
+            tdsPayment := createTdsPayment(event)
+            tdsPayment.Status = "CANCELLED"
+            db.Save(tdsPayment)
+
+            // Clean up pending reversal
+            db.DeletePendingReversal(event.EntityId)
+            log.Info("Created TDS Payment as CANCELLED (reversal received first)",
+                "payout_id", event.EntityId)
+        } else {
+            // Normal flow — create as PENDING
+            tdsPayment := createTdsPayment(event)
+            tdsPayment.Status = "PENDING"
+            db.Save(tdsPayment)
+        }
+    }
+
+    return nil
+}
+
+// Cleanup job: Remove stale pending reversals (older than 7 days)
+// Stale entries indicate the "processed" event was lost — alert for manual fix
+func cleanupStalePendingReversals() {
+    stale := db.Query(`
+        SELECT * FROM pending_reversals
+        WHERE created_at < NOW() - INTERVAL '7 days'
+    `)
+
+    for _, pr := range stale {
+        alert("Stale pending reversal - processed event never received",
+            "payout_id", pr.PayoutId)
+        createReconciliationTicket(pr.PayoutId, "MISSING_PROCESSED_EVENT")
+    }
+}</code></pre>
+
+  <div class="info">
+    <h4>Why This Solution Works</h4>
+    <ul>
+      <li><strong>Handles out-of-order events:</strong> Reversed before processed is safely handled</li>
+      <li><strong>Idempotent:</strong> Duplicate events don't cause issues</li>
+      <li><strong>Self-cleaning:</strong> Pending reversals table cleaned up after processed event arrives</li>
+      <li><strong>Alerts on anomalies:</strong> Stale entries trigger alerts for investigation</li>
+    </ul>
+  </div>
+
+  <h3>13.5 Ops Dashboard for Manual Recovery (Case 3)</h3>
+
+  <p>
+    For Case 3 (reversal after TDS paid to govt), the Ops team needs visibility and tools for manual recovery:
+  </p>
+
+  <ul>
+    <li><strong>Dashboard View:</strong> List of TDS Payments with <code>REVERSAL_PENDING</code> status</li>
+    <li><strong>Details:</strong> Payout ID, Merchant details, TDS amount, Reversal date</li>
+    <li><strong>Actions:</strong>
+      <ul>
+        <li>Mark as "Recovery Initiated" — Ops contacts customer</li>
+        <li>Mark as "Recovered" — TDS amount manually recovered from customer</li>
+        <li>Mark as "Written Off" — Recovery not possible (approval required)</li>
+      </ul>
+    </li>
+    <li><strong>Alerts:</strong> Email notification to Ops when new reversal enters this state</li>
+  </ul>
+
+  <h3>13.6 Summary</h3>
+
+  <div class="recommendation">
+    <h4>Key Points for Reversal Handling</h4>
+    <ul>
+      <li><strong>Payouts Change:</strong> Extend <code>ProcessTdsForPayout()</code> to also fire on <code>REVERSED</code> status</li>
+      <li><strong>Kafka Message:</strong> Include <code>entity_status: "reversed"</code> in the event</li>
+      <li><strong>Compliance Responsibility:</strong> Handle all 3 cases based on TDS Payment status</li>
+      <li><strong>Ops Involvement:</strong> Required only for Case 3 (manual recovery)</li>
+      <li><strong>No Payouts Code for Recovery:</strong> All refund/recovery logic lives in Compliance Service</li>
+    </ul>
+  </div>
+
+  <hr>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════════════ -->
+  <!-- SECTION 14: NON-FUNCTIONAL REQUIREMENTS (NFRs)                                       -->
+  <!-- ═══════════════════════════════════════════════════════════════════════════════════ -->
+
+  <h2 id="nfrs">14. Non-Functional Requirements (NFRs)</h2>
+
+  <p class="muted">
+    This section defines the performance, availability, and scalability requirements for the BB+ TDS integration.
+  </p>
+
+  <h3>14.1 Performance Requirements</h3>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Metric</th>
+        <th>Target</th>
+        <th>Measurement Point</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Single Payout Creation Latency</strong></td>
+        <td>&lt;200ms p99</td>
+        <td>API response time for <code>POST /v2/payouts</code></td>
+      </tr>
+      <tr>
+        <td><strong>TDS Compute Latency</strong></td>
+        <td>&lt;100ms p99</td>
+        <td>API response time for <code>POST /v1/tds/compute</code></td>
+      </tr>
+      <tr>
+        <td><strong>Bulk Compute Throughput</strong></td>
+        <td>1000 rows/second</td>
+        <td>Parallel compute calls during CSV preview</td>
+      </tr>
+      <tr>
+        <td><strong>Kafka Publish Latency</strong></td>
+        <td>&lt;50ms p99</td>
+        <td>Time to publish to <code>add-tds-entry-bb-plus</code></td>
+      </tr>
+      <tr>
+        <td><strong>TDS Payment Creation Latency</strong></td>
+        <td>&lt;500ms p99</td>
+        <td>Consumer processing time (Kafka receive → DB commit)</td>
+      </tr>
+      <tr>
+        <td><strong>End-to-End TDS Payment Creation</strong></td>
+        <td>&lt;30 seconds p99</td>
+        <td>Payout processed → TDS Payment created</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>14.2 Throughput Requirements</h3>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Component</th>
+        <th>Expected TPS</th>
+        <th>Peak TPS (10x headroom)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>BB+ TDS Payouts</strong></td>
+        <td>10 TPS</td>
+        <td>100 TPS</td>
+      </tr>
+      <tr>
+        <td><strong>TDS Compute API</strong></td>
+        <td>50 TPS (includes bulk preview)</td>
+        <td>500 TPS</td>
+      </tr>
+      <tr>
+        <td><strong>Kafka Consumer (Tax-Compliance)</strong></td>
+        <td>100 msg/second</td>
+        <td>1000 msg/second</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>14.3 Availability Requirements</h3>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Component</th>
+        <th>SLA</th>
+        <th>Notes</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Payouts Service</strong></td>
+        <td>99.9%</td>
+        <td>Existing SLA — unchanged by BB+ TDS</td>
+      </tr>
+      <tr>
+        <td><strong>Tax-Compliance Compute API</strong></td>
+        <td>99.9%</td>
+        <td>Must match Payouts for BB+ flow</td>
+      </tr>
+      <tr>
+        <td><strong>Kafka (add-tds-entry-bb-plus)</strong></td>
+        <td>99.95%</td>
+        <td>Managed Kafka SLA</td>
+      </tr>
+      <tr>
+        <td><strong>TDS Payment Creation</strong></td>
+        <td>Eventual (30s p99)</td>
+        <td>Async — acceptable delay</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>14.4 Data Retention</h3>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Data Type</th>
+        <th>Retention Period</th>
+        <th>Reason</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Payout Details (TDS fields)</strong></td>
+        <td>7 years</td>
+        <td>Tax compliance requirement</td>
+      </tr>
+      <tr>
+        <td><strong>TDS Payments</strong></td>
+        <td>7 years</td>
+        <td>Tax filing audit requirement</td>
+      </tr>
+      <tr>
+        <td><strong>Kafka Messages</strong></td>
+        <td>7 days</td>
+        <td>Reprocessing window</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <hr>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════════════ -->
+  <!-- SECTION 15: TESTING STRATEGY                                                          -->
+  <!-- ═══════════════════════════════════════════════════════════════════════════════════ -->
+
+  <h2 id="testing">15. Testing Strategy</h2>
+
+  <p class="muted">
+    Comprehensive testing plan for BB+ TDS integration covering unit, integration, end-to-end, and load testing.
+  </p>
+
+  <h3>15.1 Unit Tests</h3>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Component</th>
+        <th>Test Cases</th>
+        <th>Owner</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>TDSDetails.IsBBPlusFlow()</strong></td>
+        <td>
+          <ul>
+            <li>Returns true when source = "bb_plus"</li>
+            <li>Returns false when source = "" or nil</li>
+            <li>Returns false for Vendor-Payments flow</li>
+          </ul>
+        </td>
+        <td>Payouts</td>
+      </tr>
+      <tr>
+        <td><strong>Topic Routing Logic</strong></td>
+        <td>
+          <ul>
+            <li>BB+ payout → routes to <code>add-tds-entry-bb-plus</code></li>
+            <li>Non-BB+ payout → routes to <code>add-tds-entry</code></li>
+            <li>Missing source field → defaults to existing topic</li>
+          </ul>
+        </td>
+        <td>Payouts</td>
+      </tr>
+      <tr>
+        <td><strong>TDS Breakdown Serialization</strong></td>
+        <td>
+          <ul>
+            <li>All breakdown fields serialize to JSON correctly</li>
+            <li>Nil breakdown → omitted from JSON (not null)</li>
+          </ul>
+        </td>
+        <td>Payouts</td>
+      </tr>
+      <tr>
+        <td><strong>Idempotency Check</strong></td>
+        <td>
+          <ul>
+            <li>Duplicate source_transaction_id → no duplicate TDS Payment</li>
+            <li>Unique constraint violation handled gracefully</li>
+          </ul>
+        </td>
+        <td>Tax-Compliance</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>15.2 Integration Tests</h3>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Test Scenario</th>
+        <th>Steps</th>
+        <th>Expected Result</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Happy Path: Single BB+ Payout</strong></td>
+        <td>
+          1. Call <code>/v1/tds/compute</code><br>
+          2. Create payout with pre-computed TDS<br>
+          3. Process payout to PROCESSED<br>
+          4. Verify Kafka message published<br>
+          5. Verify TDS Payment created
+        </td>
+        <td>TDS Payment with status=PENDING created</td>
+      </tr>
+      <tr>
+        <td><strong>Reversal Case 1: Before TDS Deduction</strong></td>
+        <td>
+          1. Create and process BB+ payout<br>
+          2. Reverse payout<br>
+          3. Verify reversal Kafka message<br>
+          4. Verify TDS Payment status=CANCELLED
+        </td>
+        <td>TDS Payment cancelled, no deduction</td>
+      </tr>
+      <tr>
+        <td><strong>Kafka Consumer Idempotency</strong></td>
+        <td>
+          1. Publish same message twice<br>
+          2. Consumer processes both
+        </td>
+        <td>Only one TDS Payment created</td>
+      </tr>
+      <tr>
+        <td><strong>Backward Compatibility</strong></td>
+        <td>
+          1. Create payout without TDS fields<br>
+          2. Process payout
+        </td>
+        <td>Payout succeeds, no Kafka message to BB+ topic</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>15.3 End-to-End Tests</h3>
+
+  <div class="info">
+    <h4>E2E Test Environment</h4>
+    <p>Tests run in staging environment with production-like data and all services deployed.</p>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Test Case</th>
+        <th>Description</th>
+        <th>Validation</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>UI Single Payout Flow</strong></td>
+        <td>
+          Create BB+ payout from Dashboard UI with TDS category selected.
+          Verify preview, confirm, and TDS Payment creation.
+        </td>
+        <td>
+          <ul>
+            <li>Preview shows correct TDS breakdown</li>
+            <li>Payout created with NET amount</li>
+            <li>TDS Payment appears in Compliance dashboard</li>
+          </ul>
+        </td>
+      </tr>
+      <tr>
+        <td><strong>Bulk Payout Flow</strong></td>
+        <td>
+          Upload CSV with 100 rows, each with gross_amount and tds_category.
+          Verify preview file, confirm, and TDS Payments created.
+        </td>
+        <td>
+          <ul>
+            <li>Preview file shows computed TDS for each row</li>
+            <li>All 100 payouts created</li>
+            <li>100 TDS Payments created (async)</li>
+          </ul>
+        </td>
+      </tr>
+      <tr>
+        <td><strong>Reversal After TDS Deduction</strong></td>
+        <td>
+          Create payout, wait for TDS deduction (1st of month simulation),
+          then reverse payout.
+        </td>
+        <td>
+          <ul>
+            <li>TDS Payment status = REFUNDED</li>
+            <li>Refund initiated to customer account</li>
+          </ul>
+        </td>
+      </tr>
+      <tr>
+        <td><strong>LDC Applied Payout</strong></td>
+        <td>
+          Create payout for contact with valid LDC certificate.
+        </td>
+        <td>
+          <ul>
+            <li>TDS computed at reduced rate</li>
+            <li>is_ldc_applied = true in breakdown</li>
+          </ul>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>15.4 Load Testing</h3>
+
+  <div class="warning">
+    <h4>Load Test Requirements</h4>
+    <p>Load tests must pass before GA rollout (Phase 3).</p>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Test</th>
+        <th>Load Profile</th>
+        <th>Success Criteria</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Sustained Load</strong></td>
+        <td>10 TPS for 1 hour</td>
+        <td>
+          <ul>
+            <li>p99 latency &lt;200ms</li>
+            <li>Error rate &lt;0.1%</li>
+            <li>Kafka consumer lag &lt;100</li>
+          </ul>
+        </td>
+      </tr>
+      <tr>
+        <td><strong>Peak Load</strong></td>
+        <td>100 TPS for 10 minutes</td>
+        <td>
+          <ul>
+            <li>p99 latency &lt;500ms</li>
+            <li>Error rate &lt;1%</li>
+            <li>No message loss</li>
+          </ul>
+        </td>
+      </tr>
+      <tr>
+        <td><strong>Bulk Compute Stress</strong></td>
+        <td>10,000 concurrent compute calls</td>
+        <td>
+          <ul>
+            <li>All calls complete within 60s</li>
+            <li>Error rate &lt;5%</li>
+            <li>Rate limiting kicks in gracefully</li>
+          </ul>
+        </td>
+      </tr>
+      <tr>
+        <td><strong>Kafka Consumer Recovery</strong></td>
+        <td>Stop consumer for 5 minutes, restart</td>
+        <td>
+          <ul>
+            <li>Consumer catches up within 10 minutes</li>
+            <li>No duplicate TDS Payments</li>
+          </ul>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>15.5 Rollback Testing</h3>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Test</th>
+        <th>Procedure</th>
+        <th>Validation</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Feature Flag Disable</strong></td>
+        <td>
+          1. Create BB+ payouts with flag enabled<br>
+          2. Disable flag mid-flight<br>
+          3. Attempt new BB+ payout
+        </td>
+        <td>
+          New BB+ payouts rejected; in-flight payouts complete normally
+        </td>
+      </tr>
+      <tr>
+        <td><strong>Consumer Stop/Start</strong></td>
+        <td>
+          1. Stop Kafka consumer<br>
+          2. Create BB+ payouts (messages queue)<br>
+          3. Start consumer
+        </td>
+        <td>
+          All queued messages processed correctly
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <hr>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════════════ -->
+  <!-- SECTION 16: SECURITY CONSIDERATIONS                                                   -->
+  <!-- ═══════════════════════════════════════════════════════════════════════════════════ -->
+
+  <h2 id="security">16. Security Considerations</h2>
+
+  <p class="muted">
+    Security requirements for handling sensitive data in the BB+ TDS flow.
+  </p>
+
+  <h3>16.1 PII Handling</h3>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Data Field</th>
+        <th>Classification</th>
+        <th>Handling Requirements</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>contact_pan</strong></td>
+        <td>PII - Sensitive</td>
+        <td>
+          <ul>
+            <li>Never log full PAN (mask: XXXXX1234F)</li>
+            <li>Encrypt at rest in database</li>
+            <li>Transmit only over TLS</li>
+          </ul>
+        </td>
+      </tr>
+      <tr>
+        <td><strong>merchant_id</strong></td>
+        <td>Internal Identifier</td>
+        <td>Can be logged; used for debugging</td>
+      </tr>
+      <tr>
+        <td><strong>contact_id</strong></td>
+        <td>Internal Identifier</td>
+        <td>Can be logged; used for debugging</td>
+      </tr>
+      <tr>
+        <td><strong>TDS amounts</strong></td>
+        <td>Financial Data</td>
+        <td>Can be logged; audit trail required</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>16.2 Logging Guidelines</h3>
+
+  <div class="warning">
+    <h4>PAN Masking Required</h4>
+    <p>All log statements must mask PAN. Use the standard masking utility.</p>
+  </div>
+
+  <pre><code>// CORRECT - masked PAN in logs
+log.Info("TDS Payment created",
+    "payout_id", payoutID,
+    "pan_masked", maskPAN(contactPAN),  // "XXXXX1234F"
+    "tds_amount", tdsAmount)
+
+// WRONG - never log full PAN
+log.Info("TDS Payment created", "pan", contactPAN)  // ❌ PROHIBITED</code></pre>
+
+  <h3>16.3 Kafka Message Security</h3>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Requirement</th>
+        <th>Implementation</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Encryption in Transit</strong></td>
+        <td>TLS 1.2+ required for all Kafka connections</td>
+      </tr>
+      <tr>
+        <td><strong>Authentication</strong></td>
+        <td>SASL/SCRAM authentication for producers and consumers</td>
+      </tr>
+      <tr>
+        <td><strong>Authorization</strong></td>
+        <td>ACLs restrict topic access to authorized services only</td>
+      </tr>
+      <tr>
+        <td><strong>PAN in Messages</strong></td>
+        <td>Full PAN allowed in Kafka messages (encrypted in transit, internal system)</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>16.4 Access Control</h3>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Resource</th>
+        <th>Access Level</th>
+        <th>Authorized Roles</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>TDS Payment Records</strong></td>
+        <td>Read</td>
+        <td>Compliance Team, Ops Team, Engineering (on-call)</td>
+      </tr>
+      <tr>
+        <td><strong>TDS Payment Records</strong></td>
+        <td>Write</td>
+        <td>Tax-Compliance Service (system), Ops Team (manual recovery)</td>
+      </tr>
+      <tr>
+        <td><strong>Kafka Topic: add-tds-entry-bb-plus</strong></td>
+        <td>Produce</td>
+        <td>Payouts Service only</td>
+      </tr>
+      <tr>
+        <td><strong>Kafka Topic: add-tds-entry-bb-plus</strong></td>
+        <td>Consume</td>
+        <td>Tax-Compliance Service only</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>16.5 API Security</h3>
+
+  <ul>
+    <li><strong>Authentication:</strong> All APIs require valid OAuth2 token or API key</li>
+    <li><strong>Authorization:</strong> Merchant can only access their own payouts and TDS records</li>
+    <li><strong>Rate Limiting:</strong> <code>/v1/tds/compute</code> limited to 100 req/sec per merchant</li>
+    <li><strong>Input Validation:</strong> PAN format validated (10 alphanumeric), amounts validated (positive integers)</li>
+  </ul>
+
+  <hr>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════════════ -->
+  <!-- SECTION 17: OBSERVABILITY & MONITORING                                                -->
+  <!-- ═══════════════════════════════════════════════════════════════════════════════════ -->
+
+  <h2 id="observability">17. Observability & Monitoring</h2>
+
+  <p class="muted">
+    Metrics, alerts, and dashboards for monitoring BB+ TDS integration health.
+  </p>
+
+  <h3>17.1 Key Metrics</h3>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Metric Name</th>
+        <th>Type</th>
+        <th>Labels</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>bb_plus_payouts_created_total</code></td>
+        <td>Counter</td>
+        <td>status, merchant_id</td>
+        <td>Total BB+ payouts created</td>
+      </tr>
+      <tr>
+        <td><code>bb_plus_payout_creation_duration_ms</code></td>
+        <td>Histogram</td>
+        <td>status</td>
+        <td>Payout creation latency</td>
+      </tr>
+      <tr>
+        <td><code>bb_plus_kafka_publish_total</code></td>
+        <td>Counter</td>
+        <td>topic, status</td>
+        <td>Kafka messages published</td>
+      </tr>
+      <tr>
+        <td><code>bb_plus_kafka_publish_duration_ms</code></td>
+        <td>Histogram</td>
+        <td>topic</td>
+        <td>Kafka publish latency</td>
+      </tr>
+      <tr>
+        <td><code>bb_plus_kafka_consumer_lag</code></td>
+        <td>Gauge</td>
+        <td>consumer_group, partition</td>
+        <td>Consumer lag (messages behind)</td>
+      </tr>
+      <tr>
+        <td><code>bb_plus_tds_payment_created_total</code></td>
+        <td>Counter</td>
+        <td>status, category_code</td>
+        <td>TDS Payments created</td>
+      </tr>
+      <tr>
+        <td><code>bb_plus_tds_payment_creation_duration_ms</code></td>
+        <td>Histogram</td>
+        <td>status</td>
+        <td>TDS Payment creation latency</td>
+      </tr>
+      <tr>
+        <td><code>bb_plus_reversal_total</code></td>
+        <td>Counter</td>
+        <td>case_type (1,2,3)</td>
+        <td>Reversals by case type</td>
+      </tr>
+      <tr>
+        <td><code>bb_plus_compute_duration_ms</code></td>
+        <td>Histogram</td>
+        <td>category_code</td>
+        <td>TDS compute API latency</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>17.2 Alerting Rules</h3>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Alert Name</th>
+        <th>Condition</th>
+        <th>Severity</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>KafkaConsumerLagHigh</strong></td>
+        <td><code>bb_plus_kafka_consumer_lag &gt; 1000</code> for 5 min</td>
+        <td>Warning</td>
+        <td>Investigate consumer health</td>
+      </tr>
+      <tr>
+        <td><strong>KafkaConsumerLagCritical</strong></td>
+        <td><code>bb_plus_kafka_consumer_lag &gt; 10000</code> for 5 min</td>
+        <td>Critical</td>
+        <td>Page on-call; scale consumer</td>
+      </tr>
+      <tr>
+        <td><strong>TDSPaymentCreationFailure</strong></td>
+        <td>Error rate &gt; 1% over 5 min</td>
+        <td>Critical</td>
+        <td>Page on-call; check Tax-Compliance service</td>
+      </tr>
+      <tr>
+        <td><strong>KafkaPublishFailure</strong></td>
+        <td>Any publish failure</td>
+        <td>Critical</td>
+        <td>Investigate immediately; messages may be lost</td>
+      </tr>
+      <tr>
+        <td><strong>ReversalPendingManualRecovery</strong></td>
+        <td>Case 3 reversal pending &gt; 24h</td>
+        <td>Warning</td>
+        <td>Alert Ops team for manual recovery</td>
+      </tr>
+      <tr>
+        <td><strong>ComputeAPILatencyHigh</strong></td>
+        <td>p99 &gt; 500ms for 10 min</td>
+        <td>Warning</td>
+        <td>Investigate Tax-Compliance service</td>
+      </tr>
+      <tr>
+        <td><strong>ReconciliationMismatch</strong></td>
+        <td>Daily reconciliation finds mismatches</td>
+        <td>Warning</td>
+        <td>Investigate; run manual reconciliation</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>17.3 Dashboards</h3>
+
+  <h4>17.3.1 BB+ TDS Overview Dashboard</h4>
+  <ul>
+    <li><strong>Panel 1:</strong> BB+ Payouts created (time series, by status)</li>
+    <li><strong>Panel 2:</strong> TDS Payments created (time series, by status)</li>
+    <li><strong>Panel 3:</strong> Kafka consumer lag (time series)</li>
+    <li><strong>Panel 4:</strong> End-to-end latency (histogram)</li>
+    <li><strong>Panel 5:</strong> Error rate (time series)</li>
+    <li><strong>Panel 6:</strong> Reversals by case type (pie chart)</li>
+  </ul>
+
+  <h4>17.3.2 BB+ TDS Debugging Dashboard</h4>
+  <ul>
+    <li><strong>Panel 1:</strong> Payout → TDS Payment trace (searchable by payout_id)</li>
+    <li><strong>Panel 2:</strong> Failed TDS Payment creations (table with error details)</li>
+    <li><strong>Panel 3:</strong> DLQ messages (count and samples)</li>
+    <li><strong>Panel 4:</strong> Reconciliation mismatches (table)</li>
+  </ul>
+
+  <h3>17.4 Tracing</h3>
+
+  <div class="info">
+    <h4>Distributed Tracing</h4>
+    <p>
+      All requests must propagate <code>trace_id</code> through the entire flow:
+      UI → BFF → Tax-Compliance (compute) → BFF → Payouts → Kafka → Tax-Compliance (consumer).
+    </p>
+  </div>
+
+  <pre><code>// Kafka message includes trace_id for correlation
+{
+  "entity_id": "pout_ABC123",
+  "entity_status": "processed",
+  "trace_id": "abc123def456",  // Propagated from original request
+  ...
+}</code></pre>
+
+  <hr>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════════════ -->
+  <!-- SECTION 18: ERROR HANDLING & RESILIENCE                                               -->
+  <!-- ═══════════════════════════════════════════════════════════════════════════════════ -->
+
+  <h2 id="error-handling">18. Error Handling & Resilience</h2>
+
+  <p class="muted">
+    Strategies for handling failures gracefully and ensuring system resilience.
+  </p>
+
+  <h3>18.1 Kafka Publishing Strategy</h3>
+
+  <div class="info">
+    <h4>Guaranteed Delivery via Outbox Pattern</h4>
+    <p>
+      To prevent message loss when Kafka is unavailable or service crashes after DB commit,
+      we implement the <strong>outbox pattern</strong>.
+    </p>
+  </div>
+
+  <h4>18.1.1 Outbox Pattern Implementation</h4>
+
+  <pre><code>// Step 1: Write payout + outbox entry in same transaction
+BEGIN TRANSACTION;
+  UPDATE payouts SET status = 'processed' WHERE id = 'pout_xxx';
+  INSERT INTO tds_outbox (payout_id, payload, status, created_at)
+    VALUES ('pout_xxx', '{...}', 'pending', NOW());
+COMMIT;
+
+// Step 2: Background job polls outbox and publishes
+SELECT * FROM tds_outbox WHERE status = 'pending' ORDER BY created_at LIMIT 100;
+FOR EACH entry:
+  Publish to Kafka
+  IF success:
+    UPDATE tds_outbox SET status = 'published' WHERE id = entry.id;
+  ELSE:
+    INCREMENT retry_count
+    IF retry_count > 5:
+      UPDATE tds_outbox SET status = 'failed';
+      ALERT("Outbox entry failed after 5 retries")
+
+// Step 3: Cleanup job removes old published entries
+DELETE FROM tds_outbox WHERE status = 'published' AND created_at < NOW() - INTERVAL '7 days';</code></pre>
+
+  <h4>18.1.2 Outbox Table Schema</h4>
+
+  <table>
+    <thead>
+      <tr><th>Column</th><th>Type</th><th>Description</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>id</td><td>BIGINT</td><td>Primary key</td></tr>
+      <tr><td>payout_id</td><td>VARCHAR(20)</td><td>Reference to payout</td></tr>
+      <tr><td>payload</td><td>JSONB</td><td>Kafka message payload</td></tr>
+      <tr><td>topic</td><td>VARCHAR(50)</td><td>Target Kafka topic</td></tr>
+      <tr><td>status</td><td>VARCHAR(20)</td><td>pending, published, failed</td></tr>
+      <tr><td>retry_count</td><td>INT</td><td>Number of publish attempts</td></tr>
+      <tr><td>created_at</td><td>TIMESTAMP</td><td>Entry creation time</td></tr>
+      <tr><td>published_at</td><td>TIMESTAMP</td><td>When successfully published</td></tr>
+    </tbody>
+  </table>
+
+  <h3>18.2 Kafka Consumer Resilience</h3>
+
+  <h4>18.2.1 Idempotency Handling</h4>
+
+  <pre><code>// Tax-Compliance Consumer - Idempotent TDS Payment Creation
+func handleTdsEvent(event TdsEvent) error {
+    // Check if already processed (idempotency)
+    existing := db.FindBySourceTransactionId(event.EntityId)
+    if existing != nil {
+        log.Info("Duplicate event, skipping", "payout_id", event.EntityId)
+        return nil  // Acknowledge message, no action needed
+    }
+
+    // Create TDS Payment with unique constraint
+    tdsPayment := TdsPayment{
+        SourceTransactionId: event.EntityId,  // UNIQUE constraint
+        ...
+    }
+
+    err := db.Create(&amp;tdsPayment)
+    if err != nil &amp;&amp; isUniqueConstraintViolation(err) {
+        // Race condition: another consumer created it
+        log.Info("Concurrent creation detected, skipping", "payout_id", event.EntityId)
+        return nil
+    }
+
+    return err
+}</code></pre>
+
+  <h4>18.2.2 Retry and DLQ Strategy</h4>
+
+  <table>
+    <thead>
+      <tr><th>Retry Attempt</th><th>Delay</th><th>Action</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>1</td><td>1 second</td><td>Immediate retry</td></tr>
+      <tr><td>2</td><td>5 seconds</td><td>Retry with backoff</td></tr>
+      <tr><td>3</td><td>30 seconds</td><td>Retry with longer backoff</td></tr>
+      <tr><td>4</td><td>5 minutes</td><td>Final retry</td></tr>
+      <tr><td>5+</td><td>N/A</td><td>Send to DLQ, alert on-call</td></tr>
+    </tbody>
+  </table>
+
+  <h4>18.2.3 Dead Letter Queue (DLQ) Handling</h4>
+
+  <ul>
+    <li><strong>DLQ Topic:</strong> <code>add-tds-entry-bb-plus-dlq</code></li>
+    <li><strong>Monitoring:</strong> Alert when DLQ has any messages</li>
+    <li><strong>Manual Processing:</strong> On-call investigates and replays or discards</li>
+    <li><strong>Retention:</strong> 30 days</li>
+  </ul>
+
+  <h3>18.3 Bulk Payout Failure Handling</h3>
+
+  <h4>18.3.1 Compute Failure Strategy</h4>
+
+  <pre><code>// Bulk compute with failure handling
+func computeTdsForBulk(rows []BulkRow) ([]ComputeResult, error) {
+    results := make([]ComputeResult, len(rows))
+    failureCount := 0
+
+    // Parallel compute with rate limiting
+    semaphore := make(chan struct{}, 100)  // Max 100 concurrent
+
+    for i, row := range rows {
+        semaphore <- struct{}{}
+        go func(idx int, r BulkRow) {
+            defer func() { <-semaphore }()
+
+            result, err := taxCompliance.Compute(r)
+            if err != nil {
+                results[idx] = ComputeResult{Error: err, Row: idx}
+                atomic.AddInt32(&amp;failureCount, 1)
+            } else {
+                results[idx] = ComputeResult{Data: result, Row: idx}
+            }
+        }(i, row)
+    }
+
+    // Wait for all to complete
+    // ...
+
+    // Check failure threshold (10%)
+    failureRate := float64(failureCount) / float64(len(rows))
+    if failureRate > 0.10 {
+        return nil, fmt.Errorf("bulk compute failed: %.1f%% failure rate exceeds 10%% threshold", failureRate*100)
+    }
+
+    return results, nil
+}</code></pre>
+
+  <h4>18.3.2 Bulk Failure Response</h4>
+
+  <pre><code>// Response for partial bulk failure
+{
+  "status": "partial_success",
+  "total_rows": 1000,
+  "successful": 950,
+  "failed": 50,
+  "failures": [
+    {"row": 15, "error": "Invalid TDS category", "field": "tds_category"},
+    {"row": 42, "error": "PAN format invalid", "field": "contact_pan"},
+    ...
+  ],
+  "preview_file_url": "https://..."  // Preview file excludes failed rows
+}</code></pre>
+
+  <h3>18.4 Error Response Format</h3>
+
+  <h4>18.4.1 Standard Error Response</h4>
+
+  <pre><code>{
+  "error": {
+    "code": "TDS_COMPUTE_FAILED",
+    "description": "Unable to compute TDS for the given category",
+    "field": "tds.category_id",
+    "reason": "Category 194X is not valid for BB+ payouts"
+  }
+}</code></pre>
+
+  <h4>18.4.2 Error Codes</h4>
+
+  <table>
+    <thead>
+      <tr><th>Error Code</th><th>HTTP Status</th><th>Description</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>TDS_COMPUTE_FAILED</code></td><td>400</td><td>TDS computation failed (invalid inputs)</td></tr>
+      <tr><td><code>TDS_CATEGORY_INVALID</code></td><td>400</td><td>Invalid or unsupported TDS category</td></tr>
+      <tr><td><code>TDS_PAN_INVALID</code></td><td>400</td><td>Invalid PAN format</td></tr>
+      <tr><td><code>TDS_LDC_EXPIRED</code></td><td>400</td><td>LDC certificate has expired</td></tr>
+      <tr><td><code>TDS_AMOUNT_MISMATCH</code></td><td>400</td><td>gross_amount - tds_amount ≠ payout amount</td></tr>
+      <tr><td><code>TDS_SERVICE_UNAVAILABLE</code></td><td>503</td><td>Tax-Compliance service unavailable</td></tr>
+    </tbody>
+  </table>
+
+  <h3>18.5 Reconciliation Job</h3>
+
+  <div class="info">
+    <h4>Daily Reconciliation</h4>
+    <p>
+      A daily job compares BB+ payouts in Payouts DB with TDS Payments in Tax-Compliance DB
+      to detect any mismatches (e.g., orphaned payouts without TDS Payments).
+    </p>
+  </div>
+
+  <pre><code>// Reconciliation Job (runs daily at 2 AM)
+func reconcileBBPlusTds() {
+    // 1. Get all BB+ payouts processed yesterday
+    payouts := db.Query(`
+        SELECT id, merchant_id, tds_amount
+        FROM payouts p
+        JOIN payout_details pd ON p.id = pd.payout_id
+        WHERE pd.tds_source = 'bb_plus'
+        AND p.status = 'processed'
+        AND p.processed_at BETWEEN ? AND ?
+    `, yesterday, today)
+
+    // 2. Get all TDS Payments created yesterday
+    tdsPayments := taxCompliance.Query(`
+        SELECT source_transaction_id, total_tds_amount, status
+        FROM tds_payments
+        WHERE transaction_source = 'BB_PLUS'
+        AND created_at BETWEEN ? AND ?
+    `, yesterday, today)
+
+    // 3. Compare
+    payoutMap := toMap(payouts)
+    tdsMap := toMap(tdsPayments)
+
+    for payoutId, payout := range payoutMap {
+        tds, exists := tdsMap[payoutId]
+        if !exists {
+            alert("Missing TDS Payment", payoutId)
+            createReconciliationTicket(payoutId, "MISSING_TDS_PAYMENT")
+        } else if payout.TdsAmount != tds.TotalTdsAmount {
+            alert("Amount mismatch", payoutId)
+            createReconciliationTicket(payoutId, "AMOUNT_MISMATCH")
+        }
+    }
+
+    // 4. Check for orphaned TDS Payments
+    for tdsPaymentId, tds := range tdsMap {
+        if _, exists := payoutMap[tds.SourceTransactionId]; !exists {
+            alert("Orphaned TDS Payment", tdsPaymentId)
+            createReconciliationTicket(tdsPaymentId, "ORPHANED_TDS_PAYMENT")
+        }
+    }
+}</code></pre>
+
+  <hr>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════════════ -->
+  <!-- SECTION 19: RESOLVED OPEN QUESTIONS                                                   -->
+  <!-- ═══════════════════════════════════════════════════════════════════════════════════ -->
+
+  <h2 id="resolved-questions">19. Resolved Open Questions</h2>
+
+  <p class="muted">
+    This section documents the resolution of open questions from Section 9.
+  </p>
+
+  <table>
+    <thead>
+      <tr><th>#</th><th>Question</th><th>Resolution</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td><strong>Idempotency:</strong> Is TDS Payment creation idempotent?</td>
+        <td>
+          <strong>YES.</strong> Use <code>source_transaction_id</code> with UNIQUE constraint.
+          Consumer checks existence before insert; handles unique constraint violation gracefully.
+          See Section 18.2.1.
+        </td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td><strong>Timeout/Circuit Breaker:</strong> Strategy for compute call failures?</td>
+        <td>
+          <strong>Not applicable for Approach 3.</strong> Compute happens in BFF before payout creation.
+          BFF should implement 3s timeout and show error to user if compute fails.
+          Payouts has no S2S call to Tax-Compliance.
+        </td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td><strong>Kafka Reliability:</strong> Retry policy and DLQ?</td>
+        <td>
+          <strong>Defined.</strong> 4 retries with exponential backoff (1s, 5s, 30s, 5m).
+          After 4 failures, send to DLQ (<code>add-tds-entry-bb-plus-dlq</code>).
+          Alert on DLQ messages. See Section 18.2.2.
+        </td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td><strong>Reversal Handling:</strong> Can we void after filing?</td>
+        <td>
+          <strong>Case 3 defined.</strong> If TDS already paid to govt, cannot be recovered.
+          Ops must manually recover from customer account.
+          TDS Payment marked as REVERSAL_PENDING. See Section 13.2.
+        </td>
+      </tr>
+      <tr>
+        <td>5</td>
+        <td><strong>LDC Validation:</strong> What if LDC expires between compute and payout?</td>
+        <td>
+          <strong>Accepted risk.</strong> LDC certificates have 1-year validity.
+          Time between compute and payout is typically &lt;30 seconds.
+          Risk is minimal and acceptable for Approach 3.
+        </td>
+      </tr>
+      <tr>
+        <td>6</td>
+        <td><strong>Backward Compatibility:</strong> How to distinguish BB+ from Vendor-Payments?</td>
+        <td>
+          <strong>By source field.</strong> If <code>tds.source == "bb_plus"</code>, it's BB+ flow.
+          Otherwise, existing Vendor-Payments flow unchanged.
+        </td>
+      </tr>
+      <tr>
+        <td>7</td>
+        <td><strong>Transaction Boundaries:</strong> Kafka publish after DB commit — outbox pattern?</td>
+        <td>
+          <strong>YES, implement outbox pattern.</strong> Write to <code>tds_outbox</code> table
+          in same transaction as payout status update. Background job publishes to Kafka.
+          Guarantees no message loss. See Section 18.1.
+        </td>
+      </tr>
+      <tr>
+        <td>8</td>
+        <td><strong>Observability:</strong> Trace ID across services?</td>
+        <td>
+          <strong>Required.</strong> Propagate <code>trace_id</code> through entire flow.
+          Include in Kafka message payload. See Section 17.4.
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <hr>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════════════ -->
+  <!-- UPDATED TABLE OF CONTENTS                                                             -->
+  <!-- ═══════════════════════════════════════════════════════════════════════════════════ -->
+
+  <p class="muted" style="text-align: center; margin-top: 40px;">
+    End of Document - Version 8.0 (All Review Issues Resolved)
+  </p>
+
+</body>
+</html>
