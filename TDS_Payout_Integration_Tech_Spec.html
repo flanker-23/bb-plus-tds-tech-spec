@@ -3,15 +3,31 @@
 <head>
   <meta charset="utf-8">
   <title>TDS Payout Integration - Technical Specification</title>
+  <!-- Mermaid.js for flow charts and sequence diagrams -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
   <style>
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      font-family: "Google Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      font-size: 14px;
       line-height: 1.6;
-      color: #1f2933;
+      color: #202124;
       margin: 0;
       padding: 24px;
       max-width: 1200px;
       margin: 0 auto;
+    }
+    /* Mermaid diagram styling */
+    .mermaid-container {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 24px;
+      margin: 24px 0;
+      overflow-x: auto;
+    }
+    .mermaid-container .mermaid {
+      display: flex;
+      justify-content: center;
     }
     h1, h2, h3, h4 {
       color: #0b2239;
@@ -110,17 +126,6 @@
     .info h4 {
       margin-top: 0;
       color: #285e61;
-    }
-    .flow-diagram {
-      background: #1a202c;
-      color: #e2e8f0;
-      padding: 20px;
-      border-radius: 8px;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      font-size: 12px;
-      line-height: 1.4;
-      overflow-x: auto;
-      white-space: pre;
     }
     .entity-map {
       background: #f7fafc;
@@ -454,11 +459,13 @@
 </head>
 <body>
 
-  <h1>TDS Payout Integration - Technical Specification</h1>
+  <!-- Document Title (Heading 1 / Title style per Format guide) -->
+  <h1 class="doc-title" style="font-size: 28px; font-weight: 700; margin-bottom: 8px;">TDS Payout Integration — Technical Specification</h1>
 
+  <!-- Author, Version, Date (per Format and Structure Your Doc) -->
   <div class="version-info">
-    <div><span>Version:</span> <span>8.0</span></div>
     <div><span>Author:</span> <span>Prashant Chauhan</span></div>
+    <div><span>Version:</span> <span>9.0</span></div>
     <div><span>Date:</span> <span>February 2026</span></div>
   </div>
 
@@ -567,6 +574,19 @@
         </ul>
       </li>
       <li><a href="#resolved-questions">19. Resolved Open Questions</a></li>
+      <li><a href="#codebase-reference">20. Codebase Reference</a> (from CODEBASE_UNDERSTANDING)
+        <ul>
+          <li>20.1 Repository Structure</li>
+          <li>20.2 V2 Payouts Endpoint Flow</li>
+          <li>20.3 TDS Data Flow (Request → Kafka)</li>
+          <li>20.4 End-to-End TDS Flow</li>
+          <li>20.5 BB+ System Architecture</li>
+          <li>20.6 Gap Analysis</li>
+          <li>20.7 Kafka Topic Routing Logic</li>
+          <li>20.8 Public vs Internal API</li>
+          <li>20.9 Key Files for BB+ Integration</li>
+        </ul>
+      </li>
     </ul>
   </div>
 
@@ -586,7 +606,34 @@
     <li>TDS is tracked for monthly filing and payment to government</li>
   </ul>
 
-  <h3>1.2 Product Requirement</h3>
+  <h3>1.2 Services Architecture (High-Level)</h3>
+
+  <div class="mermaid-container">
+    <div class="mermaid">
+flowchart LR
+    subgraph Frontend
+        UI[BB+ UI/Dashboard]
+        BFF[BFF]
+    end
+
+    subgraph Backend
+        TC[Tax-Compliance<br/>Compute + TDS Payment]
+        PO[Payouts<br/>Payout creation + FTS]
+    end
+
+    subgraph Messaging
+        KF[Kafka<br/>add-tds-entry*]
+    end
+
+    UI --> BFF
+    BFF -->|"1. Compute (preview)"| TC
+    BFF -->|"2. Create Payout"| PO
+    PO -->|"3. On processed"| KF
+    KF --> TC
+    </div>
+  </div>
+
+  <h3>1.3 Product Requirement</h3>
 
   <div class="recommendation">
     <h4>Seamless Merchant Experience</h4>
@@ -612,7 +659,7 @@
     </p>
   </div>
 
-  <h3>1.3 Services Involved</h3>
+  <h3>1.4 Services Involved</h3>
   <table>
     <thead>
       <tr>
@@ -641,15 +688,23 @@
   </table>
 
   <h4>Architecture</h4>
-  <pre style="background: #f8f9fa; padding: 16px; border-radius: 8px; font-family: Consolas, Monaco, monospace;">
-[Merchant UI/FE] ---> [Tax-Compliance Service]  (Backend)
-[Merchant UI/FE] ---> [Payouts Service]         (Backend)
+  <div class="mermaid-container">
+    <div class="mermaid">
+flowchart LR
+    subgraph Client
+        UI[Merchant UI/FE]
+    end
+    subgraph Backend
+        TC[Tax-Compliance]
+        PO[Payouts]
+    end
+    UI -->|Compute| TC
+    UI -->|Create Payout| PO
+    </div>
+  </div>
+  <p class="muted">Both Tax-Compliance and Payouts are backend services. UI/FE calls the APIs directly based on the chosen approach.</p>
 
-Both Tax-Compliance and Payouts are backend services.
-UI/FE calls the APIs directly based on the chosen approach.
-  </pre>
-
-  <h3>1.4 Amount Field Relationship</h3>
+  <h3>1.5 Amount Field Relationship</h3>
 
   <div class="info">
     <h4>All amounts in paise. Rate in basis points (÷ 100 = %).</h4>
@@ -663,7 +718,7 @@ Example: category 194J, rate 10%
   payout.amount (net)    = 900000    (₹9,000)</code></pre>
   </div>
 
-  <h3>1.5 Key Entities</h3>
+  <h3>1.6 Key Entities</h3>
   <table>
     <thead>
       <tr>
@@ -691,9 +746,9 @@ Example: category 194J, rate 10%
     </tbody>
   </table>
 
-  <h3 id="current-functionality">1.5 Current Functionality (As-Is)</h3>
+  <h3 id="current-functionality">1.7 Current Functionality (As-Is)</h3>
 
-  <h4>1.5.1 Payouts Service</h4>
+  <h4>1.7.1 Payouts Service</h4>
   <ul>
     <li>Exposes <code>POST /v1/payouts</code> to create payouts and persists <code>payout</code> + <code>payout_details</code>.</li>
     <li>Accepts a minimal <code>tds</code> object (amount, category_id) for existing flows.</li>
@@ -701,7 +756,7 @@ Example: category 194J, rate 10%
     <li>Does not compute TDS; relies on caller for computed values.</li>
   </ul>
 
-  <h4>1.5.2 Tax-Compliance Service</h4>
+  <h4>1.7.2 Tax-Compliance Service</h4>
   <ul>
     <li>Exposes <code>POST /v1/tds/compute</code> for TDS calculation (basic tax, surcharge, cess).</li>
     <li>Maintains <code>tds_payments</code> for filing and compliance.</li>
@@ -709,14 +764,14 @@ Example: category 194J, rate 10%
     <li>Currently provides compute preview for BB+ UI flow without direct payout linkage.</li>
   </ul>
 
-  <h4>1.5.3 Current BB+ TDS Flow (UI)</h4>
+  <h4>1.7.3 Current BB+ TDS Flow (UI)</h4>
   <ul>
     <li>UI/FE calls Tax-Compliance compute for preview and displays net amount.</li>
     <li>Payout created with net amount; only minimal TDS fields persisted in Payouts.</li>
     <li>No automated TDS Payment creation or payout-status-driven updates for BB+ yet.</li>
   </ul>
 
-  <h3 id="required-changes">1.6 Required Changes (By Service)</h3>
+  <h3 id="required-changes">1.8 Required Changes (By Service)</h3>
   <table>
     <thead>
       <tr>
@@ -766,7 +821,7 @@ Example: category 194J, rate 10%
     </tbody>
   </table>
 
-  <h3 id="approach-coverage">1.7 Approach Coverage (UI vs API)</h3>
+  <h3 id="approach-coverage">1.9 Approach Coverage (UI vs API)</h3>
   <table>
     <thead>
       <tr><th>Channel</th><th>Compute Trigger</th><th>Creation Flow</th><th>Recommended Approach</th></tr>
@@ -793,7 +848,7 @@ Example: category 194J, rate 10%
     </tbody>
   </table>
 
-  <h3 id="vendor-payments-isolation">1.8 Vendor-Payments Isolation (Non-Impact)</h3>
+  <h3 id="vendor-payments-isolation">1.10 Vendor-Payments Isolation (Non-Impact)</h3>
   <div class="info">
     <h4>Isolation Guarantee</h4>
     <ul>
@@ -838,118 +893,42 @@ Example: category 194J, rate 10%
 
   <h3>2.1 Flow Diagram</h3>
 
-  
-<div class="flow-diagram" style="background: #1a202c; color: #e2e8f0; padding: 20px; border-radius: 8px; font-family: 'Consolas', 'Monaco', monospace; font-size: 12px; line-height: 1.4; overflow-x: auto; white-space: pre;">
-┌─────────────────────────────────────────────────────────────────────────────────────────────┐
-│           APPROACH 1: INLINE COMPUTE (Post-Payout Processing) - NOT RECOMMENDED            │
-├─────────────────────────────────────────────────────────────────────────────────────────────┤
-│  Legend: [UI/FE]  [Tax-Compliance]  [Payouts]  [Kafka]  [Database]                          │
-└─────────────────────────────────────────────────────────────────────────────────────────────┘
+  <div class="mermaid-container">
+    <div class="mermaid">
+sequenceDiagram
+    autonumber
+    participant UI as UI/FE
+    participant TC as Tax-Compliance
+    participant PO as Payouts
+    participant Kafka
+    participant TCC as Tax-Compliance Consumer
 
-═══════════════════════════════════════════════════════════════════════════════════════════════
- PHASE 1: COMPUTE TDS PREVIEW (UI calls Tax-Compliance for display only)
-═══════════════════════════════════════════════════════════════════════════════════════════════
+    rect rgb(240, 248, 255)
+        Note over UI,TC: PHASE 1: Compute TDS Preview
+        UI->>TC: POST /v1/tds/compute (gross, category, LDC)
+        TC->>UI: total_tds, rate, breakdown
+        UI->>UI: Display Gross/TDS/Net preview
+    end
 
- ① Merchant Enters Details              ② Compute TDS Response
+    rect rgb(255, 250, 240)
+        Note over UI,TCC: PHASE 2: Create Payout (S2S call - risky)
+        UI->>PO: POST /v1/payouts (amount=GROSS, tds inputs)
+        PO->>TC: POST /v1/tds/compute (S2S)
+        TC->>PO: TDS data
+        PO->>PO: Mutate amount: gross - tds = net
+        PO->>PO: Store payout + payout_details
+        PO->>UI: payout created
+    end
 
- ┌────────────────────┐                  ┌────────────────────┐
- │      UI / FE       │                  │   Tax-Compliance   │
- │                    │  POST            │                    │
- │  vendor_amount:    │  /v1/tds/compute │  total_tds: 50000  │
- │    500000          │ ───────────────▶ │  rate: 1000 (10%)  │
- │  category: "194J"  │                  │  basic_tax: 40000  │
- │  contact_id: xxx   │ ◀─────────────── │  surcharge: 5000   │
- │  is_ldc: false     │                  │  cess: 2500        │
- └────────────────────┘                  └────────────────────┘
-          │
-          ▼
- ┌────────────────────┐
- │   Display Preview  │
- │   ───────────────  │
- │   Gross:  ₹5,000   │
- │   TDS:    ₹500     │
- │   Net:    ₹4,500   │
- └────────────────────┘
-
-═══════════════════════════════════════════════════════════════════════════════════════════════
- PHASE 2: CREATE PAYOUT (Payouts calls Tax-Compliance internally - S2S Call!)
-═══════════════════════════════════════════════════════════════════════════════════════════════
-
- ③ Merchant Confirms                    ③a Payouts Calls Compute (S2S)
-
- ┌────────────────────┐                  ┌────────────────────┐
- │      UI / FE       │  POST /v1/payouts│      Payouts       │
- │                    │ ───────────────▶ │                    │
- │  amount: 500000    │                  │  ⚠️ S2S CALL HERE │──┐
- │    (GROSS!)        │                  │  (+50-200ms!)      │  │
- │  tds: {            │                  │                    │  │
- │    category:"194J" │                  │                    │  │
- │    source: "BB+"   │                  └────────────────────┘  │
- │  }                 │                                          │
- └────────────────────┘                                          │
-                                                                 │ POST /v1/tds/compute
-                                         ┌────────────────────┐  │
-                                         │   Tax-Compliance   │◀─┘
-                                         │                    │
-                                         │  Returns TDS data  │───┐
-                                         └────────────────────┘   │
-                                                                  │
- ┌────────────────────┐                  ┌────────────────────┐   │
- │      Payouts       │                  │      Payouts       │◀──┘
- │                    │                  │                    │
- │  Mutates amount:   │                  │  Derives net:      │
- │  500000 → 450000   │                  │  500000 - 50000    │
- │    (RISKY!)        │                  │  = 450000          │
- └────────────────────┘                  └────────────────────┘
-
- ④ Entities Created in Database
-
- ┌─────────────────────────────────────────────────────────────────────────────┐
- │                              DATABASE                                        │
- │  ┌─────────────────────────────┐    ┌─────────────────────────────────────┐ │
- │  │     Table: payouts          │    │     Table: payout_details           │ │
- │  │  ─────────────────────────  │    │  ─────────────────────────────────  │ │
- │  │  id: "pout_xxx"             │    │  payout_id: "pout_xxx"              │ │
- │  │  amount: 450000 (NET)       │    │  tds_input: {category, amount...}   │ │
- │  │  status: "created"          │    │  tds_computed: {tds_amount: 50000}  │ │
- │  └─────────────────────────────┘    └─────────────────────────────────────┘ │
- └─────────────────────────────────────────────────────────────────────────────┘
-
-═══════════════════════════════════════════════════════════════════════════════════════════════
- PHASE 3: ASYNC TDS PAYMENT CREATION
-═══════════════════════════════════════════════════════════════════════════════════════════════
-
- ⑤ Payout State Transitions
-
-    [created] ───▶ [initiated] ───▶ [processing] ───▶ [processed]
-
- ⑥ On Processed: Publish to Kafka       ⑦ Create TDS Payment Entity
-
- ┌────────────────────┐                  ┌────────────────────────────────────┐
- │      Payouts       │                  │         Kafka Topic                │
- │                    │  Publish         │    add-tds-entry-bb-plus           │
- │  ProcessTds        │ ───────────────▶ │  ┌─────────────────────────────┐   │
- │  ForPayout()       │                  │  │  entity_id: "pout_xxx"      │   │
- │                    │                  │  │  entity_status: "processed" │   │
- └────────────────────┘                  │  │  tds_amount: 50000          │   │
-                                         │  │  gross_amount: 500000       │   │
-                                         │  └─────────────────────────────┘   │
-                                         └────────────────┬───────────────────┘
-                                                          │
-                                                          ▼
-                                         ┌────────────────────────────────────┐
-                                         │        Tax-Compliance              │
-                                         │           Consumer                 │
-                                         │  ┌─────────────────────────────┐   │
-                                         │  │  Table: tds_payments        │   │
-                                         │  │  id: "tdsp_xxx"             │   │
-                                         │  │  source_transaction_id:     │   │
-                                         │  │    "pout_xxx"               │   │
-                                         │  │  total_tds_amount: 50000    │   │
-                                         │  │  status: "success"          │   │
-                                         │  └─────────────────────────────┘   │
-                                         └────────────────────────────────────┘
-</div>
+    rect rgb(240, 255, 240)
+        Note over PO,TCC: PHASE 3: Async TDS Payment
+        PO->>PO: Status: created → initiated → processed
+        PO->>Kafka: Publish add-tds-entry-bb-plus
+        Kafka->>TCC: Consume
+        TCC->>TCC: Create tds_payment (success)
+    end
+    </div>
+  </div>
 
 
   <h3>2.2 Implementation Details</h3>
@@ -1009,116 +988,48 @@ Example: category 194J, rate 10%
 
   <h3>3.1 Flow Diagram</h3>
 
-  
-<div class="flow-diagram" style="background: #1a202c; color: #e2e8f0; padding: 20px; border-radius: 8px; font-family: 'Consolas', 'Monaco', monospace; font-size: 12px; line-height: 1.4; overflow-x: auto; white-space: pre;">
-┌─────────────────────────────────────────────────────────────────────────────────────────────┐
-│               APPROACH 2: TAX-COMPLIANCE ORCHESTRATED (Alternative)                         │
-├─────────────────────────────────────────────────────────────────────────────────────────────┤
-│  Legend: [UI/FE]  [Tax-Compliance ★ Orchestrator]  [Payouts]  [Kafka]  [Database]           │
-└─────────────────────────────────────────────────────────────────────────────────────────────┘
+  <div class="mermaid-container">
+    <div class="mermaid">
+sequenceDiagram
+    autonumber
+    participant UI as UI/FE
+    participant TC as Tax-Compliance Orchestrator
+    participant PO as Payouts
+    participant Kafka
+    participant TCC as Tax-Compliance Consumer
 
-═══════════════════════════════════════════════════════════════════════════════════════════════
- PHASE 1: COMPUTE TDS PREVIEW (Same as Approach 1)
-═══════════════════════════════════════════════════════════════════════════════════════════════
+    rect rgb(240, 248, 255)
+        Note over UI,TC: PHASE 1: Compute Preview (same as Approach 1)
+        UI->>TC: Compute TDS
+        TC->>UI: Display preview
+    end
 
- ① Merchant Enters Details → Compute TDS → Display Preview (see Approach 1 Section 2.1)
+    rect rgb(255, 250, 240)
+        Note over UI,TCC: PHASE 2: Single API - Tax-Compliance Orchestrates
+        UI->>TC: POST /v1/tds/payout (tds + payout details)
+        TC->>TC: Step A: Create TDS Payment (pending)
+        TC->>PO: Step B: POST /v1/payouts (tds_payment_id)
+        alt Payouts succeeds
+            PO->>TC: payout created
+            TC->>TC: Step C: Link source_transaction_id
+            TC->>UI: tds_payment_id + payout_id
+        else Payouts fails
+            TC->>TC: Cancel TDS Payment (no orphans)
+            TC->>UI: Error
+        end
+    end
 
-═══════════════════════════════════════════════════════════════════════════════════════════════
- PHASE 2: SINGLE API CALL (Tax-Compliance Orchestrates)
-═══════════════════════════════════════════════════════════════════════════════════════════════
+    rect rgb(240, 255, 240)
+        Note over PO,TCC: PHASE 3: Async Status Sync
+        PO->>Kafka: payout-status-updates
+        Kafka->>TCC: Consume
+        TCC->>TCC: Lookup by source_transaction_id
+        TCC->>TCC: UPDATE status (processed=success, reversed=voided)
+    end
+    </div>
+  </div>
 
- ② Merchant Confirms
-
- ┌────────────────────┐     POST /v1/tds/payout      ┌──────────────────────────────────────┐
- │      UI / FE       │ ───────────────────────────▶ │       Tax-Compliance                 │
- │                    │                              │       ★ ORCHESTRATOR                 │
- │  tds: {            │                              │                                      │
- │    base_amount:    │                              │ ┌──────────────────────────────────┐ │
- │      500000        │                              │ │ INTERNAL ORCHESTRATION:          │ │
- │    tds_amount:     │                              │ │                                  │ │
- │      50000         │                              │ │ Step A: Create TDS Payment       │ │
- │    category: "194J"│                              │ │  ┌────────────────────────────┐  │ │
- │  }                 │                              │ │  │ tds_payments               │  │ │
- │  payout: {         │                              │ │  │ id: "tdsp_xxx"             │  │ │
- │    fund_account_id │                              │ │  │ status: "pending"          │  │ │
- │    amount: 450000  │                              │ │  └────────────────────────────┘  │ │
- │    mode: "NEFT"    │                              │ │            │                     │ │
- │  }                 │                              │ │            ▼                     │ │
- └────────────────────┘                              │ │ Step B: Call Payouts API         │ │
-                                                     │ │  POST /v1/payouts ───────────┐   │ │
-                                                     │ │  {tds_payment_id: "tdsp_xxx"}│   │ │
-                                                     │ │            │                 │   │ │
-                                                     │ │            ▼                 │   │ │
-                                                     │ │  ┌──────────────────────┐    │   │ │
-                                                     │ │  │      Payouts         │◀───┘   │ │
-                                                     │ │  │  Creates: pout_xxx   │        │ │
-                                                     │ │  └──────────────────────┘        │ │
-                                                     │ │            │                     │ │
-                                                     │ │            ▼                     │ │
-                                                     │ │ Step C: Link payout to TDS       │ │
-                                                     │ │  source_transaction_id =         │ │
-                                                     │ │    "pout_xxx"                    │ │
-                                                     │ └──────────────────────────────────┘ │
-                                                     └──────────────────────────────────────┘
-                                                                    │
- ┌────────────────────┐                                             │
- │      UI / FE       │ ◀───────────────────────────────────────────┘
- │                    │     Response:
- │  tds_payment_id:   │     {
- │    "tdsp_xxx"      │       tds_payment: {id: "tdsp_xxx", status: "pending"}
- │  payout_id:        │       payout: {id: "pout_xxx", status: "created"}
- │    "pout_xxx"      │     }
- └────────────────────┘
-
-═══════════════════════════════════════════════════════════════════════════════════════════════
- FAILURE HANDLING (No Orphans)
-═══════════════════════════════════════════════════════════════════════════════════════════════
-
- If Payouts API Fails:
-
-    [TDS Payment: pending] ───▶ Payouts fails ───▶ [TDS Payment: cancelled]
-
-    ✓ Synchronous cancellation - No orphaned TDS Payments
-
-═══════════════════════════════════════════════════════════════════════════════════════════════
- PHASE 3: ASYNC STATUS SYNC (via Existing Kafka)
-═══════════════════════════════════════════════════════════════════════════════════════════════
-
- ⑧ Payout Processing (Async)
-
-    [created] ───▶ [initiated] ───▶ [processing] ───▶ [processed]
-
- ⑨ Status Published to Existing Topic    ⑩ Update TDS Payment Status
-
- ┌────────────────────┐                  ┌────────────────────────────────────┐
- │      Payouts       │                  │    Kafka: payout-status-updates   │
- │                    │  Publish         │         (existing topic)          │
- │                    │ ───────────────▶ │  ┌─────────────────────────────┐   │
- │                    │                  │  │  entity_id: "pout_xxx"      │   │
- │                    │                  │  │  status: "processed"        │   │
- └────────────────────┘                  │  └─────────────────────────────┘   │
-                                         └────────────────┬───────────────────┘
-                                                          │
-                                                          ▼
-                                         ┌────────────────────────────────────┐
-                                         │        Tax-Compliance              │
-                                         │                                    │
-                                         │  Lookup by source_transaction_id   │
-                                         │  UPDATE tds_payments               │
-                                         │  SET status = 'success'            │
-                                         │  WHERE source_transaction_id =     │
-                                         │    'pout_xxx'                      │
-                                         └────────────────────────────────────┘
-
- STATUS MAPPING:
- ┌──────────────────┬─────────────────────┐
- │  Payout Status   │  TDS Payment Status │
- ├──────────────────┼─────────────────────┤
- │  processed       │  success            │
- │  reversed        │  voided             │
- │  failed/cancelled│  cancelled          │
- └──────────────────┴─────────────────────┘
-</div>
+  <p><strong>Status mapping:</strong> processed → success | reversed → voided | failed/cancelled → cancelled</p>
 
 
   <h3>3.2 Implementation Details</h3>
@@ -1317,123 +1228,71 @@ Example: category 194J, rate 10%
 
   <h3>4.2 Architecture &amp; Flow Diagram</h3>
 
-  
-<div class="flow-diagram" style="background: #1a202c; color: #e2e8f0; padding: 20px; border-radius: 8px; font-family: 'Consolas', 'Monaco', monospace; font-size: 12px; line-height: 1.4; overflow-x: auto; white-space: pre;">
-┌─────────────────────────────────────────────────────────────────────────────────────────────┐
-│            APPROACH 3: PRE-COMPUTE PATTERN (RECOMMENDED) ✓                                  │
-├─────────────────────────────────────────────────────────────────────────────────────────────┤
-│  Legend: [UI/FE/BFF]  [Tax-Compliance]  [Payouts - Minimal Changes]  [Kafka]  [Database]    │
-└─────────────────────────────────────────────────────────────────────────────────────────────┘
+  <h4>4.2.1 Pre-Compute Sequence (Mermaid)</h4>
+  <div class="mermaid-container">
+    <div class="mermaid">
+sequenceDiagram
+    participant User
+    participant BFF as BFF/Dashboard
+    participant TC as Tax-Compliance
+    participant PO as Payouts
+    participant Kafka
+    participant TCC as Tax-Compliance Consumer
 
-═══════════════════════════════════════════════════════════════════════════════════════════════
- PHASE 1: COMPUTE TDS (Before Payout Creation - BFF calls, NOT Payouts)
-═══════════════════════════════════════════════════════════════════════════════════════════════
+    User->>BFF: Enter gross, category, LDC
+    BFF->>TC: POST /v1/tds/compute
+    TC->>BFF: tds_amount, net_amount, breakdown
+    BFF->>User: Display preview (Gross/TDS/Net)
 
- ① BFF Calls Tax-Compliance Compute API
+    User->>BFF: Confirm payout
+    BFF->>PO: POST /v2/payouts (amount=NET, tds pre-computed)
+    Note over PO: NO S2S call - just store
+    PO->>PO: SetPayoutDetailsInPayout
+    PO->>BFF: payout created
 
- ┌────────────────────┐     POST /v1/tds/compute      ┌────────────────────┐
- │     BFF /          │ ────────────────────────────▶ │   Tax-Compliance   │
- │     Dashboard      │                               │                    │
- │                    │   merchant_id                 │  - Lookup rate     │
- │                    │   contact_id                  │  - Check LDC       │
- │                    │   category: "194J"            │  - Calculate       │
- │                    │   vendor_payment_amount:      │    breakdown       │
- │                    │     1000000                   │                    │
- │                    │   is_ldc_applicable: false    │                    │
- └────────────────────┘                               └────────────────────┘
+    Note over PO,Kafka: Async: FTS processes
+    PO->>PO: Status → processed
+    PO->>PO: ProcessTdsForPayout (source=bb_plus)
+    PO->>Kafka: add-tds-entry-bb-plus
+    Kafka->>TCC: Consume
+    TCC->>TCC: Create tds_payment
+    </div>
+  </div>
 
- ② BFF Receives Compute Response
+  <h4>4.2.2 Detailed Flow</h4>
+  <div class="mermaid-container">
+    <div class="mermaid">
+flowchart TB
+    subgraph Phase1["Phase 1: Compute TDS (BFF calls, NOT Payouts)"]
+        A[BFF/Dashboard] -->|"POST /v1/tds/compute"| B[Tax-Compliance]
+        B -->|tds_amount, net_amount, breakdown| A
+        A --> C[Display Preview]
+    end
 
- ┌────────────────────┐                               ┌────────────────────┐
- │   Tax-Compliance   │                               │     BFF /          │
- │                    │   Response:                   │     Dashboard      │
- │                    │ ────────────────────────────▶ │                    │
- │  tds_amount:       │   tds_amount: 100000          │  Display Preview:  │
- │    100000          │   net_amount: 900000          │  ┌──────────────┐  │
- │  net_amount:       │   category_id: 14             │  │ Gross:₹10,000│  │
- │    900000          │   effective_rate: 10.0        │  │ TDS:  ₹1,000 │  │
- │  breakdown: {...}  │   breakdown: {                │  │ Net:  ₹9,000 │  │
- │                    │     basic_tax: 90000          │  └──────────────┘  │
- │                    │     cess: 10000               │                    │
- │                    │   }                           │                    │
- └────────────────────┘                               └────────────────────┘
+    subgraph Phase2["Phase 2: Create Payout - NO S2S Call"]
+        D[User Confirms] --> E[BFF]
+        E -->|"POST /v2/payouts (NET + pre-computed tds)"| F[Payouts]
+        F --> G[(payouts)]
+        F --> H[(payout_details)]
+        G --> H
+        F -->|source=bb_plus| I[Topic routing]
+    end
 
-═══════════════════════════════════════════════════════════════════════════════════════════════
- PHASE 2: CREATE PAYOUT (Payouts Receives Pre-Computed Values - NO S2S Call!)
-═══════════════════════════════════════════════════════════════════════════════════════════════
+    subgraph Phase3["Phase 3: Async TDS Payment"]
+        J[FTS: processed] --> K[ProcessTdsForPayout]
+        K --> I
+        I -->|bb_plus| L[add-tds-entry-bb-plus]
+        I -->|else| M[add-tds-entry]
+        L --> N[Tax-Compliance Consumer]
+        N --> O[Create tds_payment]
+    end
 
- ③ User Confirms → BFF Creates Payout with Pre-Computed Values
+    Phase1 --> Phase2
+    Phase2 --> Phase3
+    </div>
+  </div>
 
- ┌────────────────────┐     POST /v2/payouts          ┌────────────────────────────────────┐
- │     BFF /          │ ────────────────────────────▶ │           Payouts Service          │
- │     Dashboard      │                               │                                    │
- │                    │   amount: 900000 (NET)        │  ┌──────────────────────────────┐  │
- │                    │   fund_account_id             │  │                              │  │
- │                    │   mode: "IMPS"                │  │   ✓ NO S2S CALL              │  │
- │                    │   tds: {                      │  │   ✓ NO AMOUNT MUTATION       │  │
- │                    │     category_id: 14           │  │   ✓ JUST STORE VALUES        │  │
- │                    │     amount: 100000            │  │                              │  │
- │                    │     source: "bb_plus" ◀───────│──│── Routing indicator          │  │
- │                    │     gross_amount: 1000000     │  │                              │  │
- │                    │     breakdown: {...}          │  └──────────────────────────────┘  │
- │                    │   }                           │                                    │
- └────────────────────┘                               └─────────────────┬──────────────────┘
-                                                                        │
-                                                                        ▼
- ┌─────────────────────────────────────────────────────────────────────────────────────────┐
- │                                    DATABASE                                              │
- │  ┌─────────────────────────────────┐      ┌─────────────────────────────────────────┐   │
- │  │       Table: payouts            │      │       Table: payout_details             │   │
- │  │  ─────────────────────────────  │      │  ─────────────────────────────────────  │   │
- │  │  id: "pout_xxx"                 │      │  tds_category_id: 14                    │   │
- │  │  amount: 900000 (NET)           │      │  tds_amount: 100000                     │   │
- │  │  status: "created"              │      │  tds_source: "bb_plus"                  │   │
- │  │                                 │      │  tds_gross_amount: 1000000              │   │
- │  │                                 │      │  tds_breakdown: {...}                   │   │
- │  └─────────────────────────────────┘      └─────────────────────────────────────────┘   │
- └─────────────────────────────────────────────────────────────────────────────────────────┘
-
-═══════════════════════════════════════════════════════════════════════════════════════════════
- PHASE 3: ASYNC TDS PAYMENT CREATION (Topic Routing Based on Source)
-═══════════════════════════════════════════════════════════════════════════════════════════════
-
- ④ Payout Reaches Terminal State → Route to Correct Topic
-
- ┌────────────────────────────────────────────────────────────────────────────────────────┐
- │                              TOPIC ROUTING LOGIC                                       │
- │                                                                                        │
- │  func ProcessTdsForPayout() {                                                          │
- │      if source == "bb_plus":                                                           │
- │          topic = "add-tds-entry-bb-plus"  ───▶  Tax-Compliance                         │
- │      else:                                                                             │
- │          topic = "add-tds-entry"          ───▶  Vendor-Payments (existing)             │
- │  }                                                                                     │
- └────────────────────────────────────────────────────────────────────────────────────────┘
-
- ┌────────────────────┐                               ┌────────────────────────────────────┐
- │      Payouts       │     Publish                   │    Kafka: add-tds-entry-bb-plus   │
- │                    │ ────────────────────────────▶ │                                    │
- │  ProcessTds        │   {                           │  ┌─────────────────────────────┐   │
- │  ForPayout()       │     entity_id: "pout_xxx"     │  │       Tax-Compliance        │   │
- │                    │     entity_status: "processed"│  │         Consumer            │   │
- │                    │     tds_amount: 100000        │  │                             │   │
- │                    │     gross_amount: 1000000     │  │  Creates tds_payment:       │   │
- │                    │     breakdown: {...}          │  │    tdsp_xxx                 │   │
- │                    │   }                           │  │    status: "success"        │   │
- │                    │                               │  │                             │   │
- └────────────────────┘                               │  └─────────────────────────────┘   │
-                                                      └────────────────────────────────────┘
-
-┌──────────────────────────────────────────────────────────────────────────────────────────────┐
-│                                                                                              │
-│   ✓ ZERO S2S CALLS IN PAYOUT CREATION CRITICAL PATH                                         │
-│   ✓ Compute happens BEFORE, not DURING payout creation                                      │
-│   ✓ Payouts stays "dumb" about TDS computation                                              │
-│   ✓ Same pattern as existing Vendor-Payments flow                                           │
-│                                                                                              │
-└──────────────────────────────────────────────────────────────────────────────────────────────┘
-</div>
-
+  <p><strong>Key benefits:</strong> Zero S2S calls in payout critical path • Compute before payout • Payouts stays dumb about TDS • Same pattern as Vendor-Payments</p>
 
   <h3>4.3 API Design: No New Version Needed</h3>
 
@@ -2311,116 +2170,46 @@ Example: 40000 + 5000 + 2500 + 1500 + 1000 = 50000</code></pre>
     </tbody>
   </table>
 
-  <h3>10.3 Bulk Flow Diagram (Approach 1)</h3>
+  <h3>10.3 Bulk Flow Diagram (Pre-Compute Pattern)</h3>
 
-  
-<div class="flow-diagram" style="background: #1a202c; color: #e2e8f0; padding: 20px; border-radius: 8px; font-family: 'Consolas', 'Monaco', monospace; font-size: 12px; line-height: 1.4; overflow-x: auto; white-space: pre;">
-┌─────────────────────────────────────────────────────────────────────────────────────────────┐
-│                      BULK PAYOUT WITH TDS (Pre-Compute Pattern)                             │
-└─────────────────────────────────────────────────────────────────────────────────────────────┘
+  <div class="mermaid-container">
+    <div class="mermaid">
+flowchart TB
+    subgraph Step1["Step 1: CSV Upload"]
+        A[CSV with TDS columns] --> A1[fund_account_id]
+        A --> A2[gross_amount]
+        A --> A3[tds_category]
+        A --> A4[contact_pan]
+    end
 
-═══════════════════════════════════════════════════════════════════════════════════════════════
- STEP 1: BATCH UPLOAD
-═══════════════════════════════════════════════════════════════════════════════════════════════
+    subgraph Step2["Step 2: Parallel Compute"]
+        B[Dashboard] -->|"POST /v1/tds/compute (per row)"| C[Tax-Compliance]
+        C -->|computed values| B
+        B --> D[Preview File: Gross, TDS, Net, Status]
+        D --> E[User Reviews and Confirms]
+    end
 
- ┌─────────────────────────────────────────────────────────────────────────────────────────┐
- │                              CSV File with TDS Columns                                  │
- │  ┌───────────────────┬──────────────┬──────────────┬──────────┬────────────────────┐   │
- │  │  fund_account_id  │ gross_amount │ tds_category │   mode   │  contact_pan       │   │
- │  ├───────────────────┼──────────────┼──────────────┼──────────┼────────────────────┤   │
- │  │  fa_001           │   1000000    │    194J      │   IMPS   │  ABCDE1234F        │   │
- │  │  fa_002           │    500000    │    194C      │   NEFT   │  FGHIJ5678K        │   │
- │  │  fa_003           │    750000    │    194J      │   IMPS   │  KLMNO9012L        │   │
- │  │  ...              │     ...      │    ...       │   ...    │  ...               │   │
- │  └───────────────────┴──────────────┴──────────────┴──────────┴────────────────────┘   │
- └─────────────────────────────────────────────────────────────────────────────────────────┘
-                                              │
-                                              ▼
+    subgraph Step3["Step 3: Batch Processing"]
+        E --> F[Dashboard]
+        F -->|"POST /v2/payouts (pre-computed)"| G[Payouts]
+        G --> H[No S2S - Just store]
+        G --> I[(N payouts with batch_id)]
+    end
 
-═══════════════════════════════════════════════════════════════════════════════════════════════
- STEP 2: PARALLEL COMPUTE (During CSV Parsing - Before User Confirms)
-═══════════════════════════════════════════════════════════════════════════════════════════════
+    subgraph Step4["Step 4: Async TDS"]
+        I --> J[Per processed payout]
+        J --> K[Kafka: add-tds-entry-bb-plus]
+        K --> L[Tax-Compliance Consumer]
+        L --> M[N TDS Payments created]
+    end
 
- ┌────────────────────┐                               ┌────────────────────┐
- │     Dashboard      │   For each row (parallel):    │   Tax-Compliance   │
- │     Service        │   POST /v1/tds/compute        │      Service       │
- │                    │ ══════════════════════════▶   │                    │
- │  Row 1 ─────────── │ ──────────────────────────▶   │  Row 1: compute    │
- │  Row 2 ─────────── │ ──────────────────────────▶   │  Row 2: compute    │
- │  Row 3 ─────────── │ ──────────────────────────▶   │  Row 3: compute    │
- │       ...          │                               │       ...          │
- │                    │ ◀══════════════════════════   │                    │
- │                    │   Returns computed values     │                    │
- └────────────────────┘                               └────────────────────┘
-          │
-          ▼
- ┌─────────────────────────────────────────────────────────────────────────────────────────┐
- │                           Preview File Generated                                        │
- │  ┌───────┬──────────┬─────────┬─────────┬──────────┬─────────────────────────────────┐  │
- │  │  Row  │  Gross   │   TDS   │   Net   │ Category │              Status             │  │
- │  ├───────┼──────────┼─────────┼─────────┼──────────┼─────────────────────────────────┤  │
- │  │   1   │ ₹10,000  │ ₹1,000  │ ₹9,000  │   194J   │  ✓ Ready                        │  │
- │  │   2   │  ₹5,000  │   ₹100  │ ₹4,900  │   194C   │  ✓ Ready                        │  │
- │  │   3   │  ₹7,500  │   ₹750  │ ₹6,750  │   194J   │  ✓ Ready                        │  │
- │  │  ...  │    ...   │   ...   │   ...   │   ...    │  ...                            │  │
- │  └───────┴──────────┴─────────┴─────────┴──────────┴─────────────────────────────────┘  │
- └─────────────────────────────────────────────────────────────────────────────────────────┘
-                                              │
-                                              ▼
-                                    User Reviews & Confirms (OTP)
+    Step1 --> Step2
+    Step2 --> Step3
+    Step3 --> Step4
+    </div>
+  </div>
 
-═══════════════════════════════════════════════════════════════════════════════════════════════
- STEP 3: BATCH PROCESSING (No S2S During Creation - Values Already Computed)
-═══════════════════════════════════════════════════════════════════════════════════════════════
-
- ┌────────────────────┐                               ┌────────────────────┐
- │     Dashboard      │   For each row:               │      Payouts       │
- │     Service        │   POST /v2/payouts            │      Service       │
- │                    │ ────────────────────────────▶ │                    │
- │  Row 1: pout_001   │   (pre-computed TDS values)   │  ✓ No compute call │
- │  Row 2: pout_002   │                               │  ✓ Just store data │
- │  Row 3: pout_003   │                               │  ✓ Fast processing │
- │       ...          │                               │                    │
- └────────────────────┘                               └─────────┬──────────┘
-                                                                │
-                                                                ▼
- ┌─────────────────────────────────────────────────────────────────────────────────────────┐
- │                      N Payout Entities Created (linked via batch_id)                    │
- │                                                                                         │
- │    pout_001 ──┐                                                                         │
- │    pout_002 ──┼──▶  batch_id: "batch_xxx"                                               │
- │    pout_003 ──┤                                                                         │
- │       ...   ──┘                                                                         │
- └─────────────────────────────────────────────────────────────────────────────────────────┘
-
-═══════════════════════════════════════════════════════════════════════════════════════════════
- STEP 4: ASYNC TDS PAYMENT CREATION (Per Processed Payout)
-═══════════════════════════════════════════════════════════════════════════════════════════════
-
- ┌────────────────────┐                               ┌────────────────────────────────────┐
- │      Payouts       │   Per processed payout:       │    Kafka: add-tds-entry-bb-plus   │
- │   (on terminal     │ ────────────────────────────▶ │                                    │
- │    state)          │   pout_001: {...}             │  ┌─────────────────────────────┐   │
- │                    │   pout_002: {...}             │  │       Tax-Compliance        │   │
- │                    │   pout_003: {...}             │  │         Consumer            │   │
- │                    │        ...                    │  │                             │   │
- └────────────────────┘                               │  │  Creates N TDS Payments:    │   │
-                                                      │  │    tdsp_001                 │   │
-                                                      │  │    tdsp_002                 │   │
-                                                      │  │    tdsp_003                 │   │
-                                                      │  │       ...                   │   │
-                                                      │  └─────────────────────────────┘   │
-                                                      └────────────────────────────────────┘
-
-┌──────────────────────────────────────────────────────────────────────────────────────────────┐
-│                                                                                              │
-│   ✓ Bulk payouts converge to single payout flow                                             │
-│   ✓ Each CSV row becomes an individual payout following standard TDS flow                   │
-│   ✓ Compute done upfront (parallel), not during batch processing                            │
-│   ✓ 1 TDS Payment per processed payout                                                      │
-│                                                                                              │
-└──────────────────────────────────────────────────────────────────────────────────────────────┘
-</div>
+  <p><strong>Summary:</strong> Bulk payouts converge to single payout flow • Compute upfront (parallel) • 1 TDS Payment per processed payout</p>
 
 
   <h3>10.4 Required Changes for Bulk Flow</h3>
@@ -3316,68 +3105,61 @@ AND p.id NOT IN (
     </ol>
   </div>
 
-  
-<div class="flow-diagram" style="background: #1a202c; color: #e2e8f0; padding: 20px; border-radius: 8px; font-family: 'Consolas', 'Monaco', monospace; font-size: 12px; line-height: 1.4; overflow-x: auto; white-space: pre;">
-┌─────────────────────────────────────────────────────────────────────────────────────────────┐
-│                            TDS MONEY MOVEMENT TIMELINE                                      │
-└─────────────────────────────────────────────────────────────────────────────────────────────┘
+  <div class="mermaid-container">
+    <div class="mermaid">
+flowchart LR
+    subgraph During["During Month (e.g. Jan)"]
+        A1[Payout Created]
+        A2[Vendor gets NET]
+        A3[TDS Record: PENDING]
+        A1 --> A2
+        A2 --> A3
+    end
 
- ┌───────────────────────────┐  ┌───────────────────────────┐  ┌───────────────────────────┐
- │   During Month            │  │   1st-4th of Next Month   │  │   7th of Next Month       │
- │   (e.g., January)         │  │                           │  │                           │
- └───────────────────────────┘  └───────────────────────────┘  └───────────────────────────┘
-              │                              │                              │
-              │                              │                              │
-              ▼                              ▼                              ▼
- ┌───────────────────────────┐  ┌───────────────────────────┐  ┌───────────────────────────┐
- │                           │  │                           │  │                           │
- │   PAYOUT CREATED          │  │   TDS DEDUCTION           │  │   TDS PAYMENT             │
- │                           │  │                           │  │   TO GOVERNMENT           │
- │   ┌───────────────────┐   │  │   ┌───────────────────┐   │  │                           │
- │   │ Vendor receives   │   │  │   │ Customer Account  │   │  │   ┌───────────────────┐   │
- │   │ NET amount        │   │  │   │ ─────────────────▶│   │  │   │ Compliance pays   │   │
- │   │ (₹9,000)          │───┼──┼──▶│ Compliance Acct   │───┼──┼──▶│ to Government     │   │
- │   │                   │   │  │   │ (₹1,000 TDS)      │   │  │   │                   │   │
- │   └───────────────────┘   │  │   └───────────────────┘   │  │   └───────────────────┘   │
- │                           │  │                           │  │                           │
- └─────────────┬─────────────┘  └─────────────┬─────────────┘  └───────────────────────────┘
-               │                              │
-               │ Kafka: add-tds-entry-bb-plus │
-               ▼                              ▼
- ┌───────────────────────────┐  ┌───────────────────────────┐
- │                           │  │                           │
- │   TDS Payment Record      │  │   TDS Payment Record      │
- │   CREATED                 │  │   UPDATED                 │
- │                           │  │                           │
- │   ┌───────────────────┐   │  │   ┌───────────────────┐   │
- │   │ status: PENDING   │───┼──┼──▶│ status: PAID      │   │
- │   └───────────────────┘   │  │   └───────────────────┘   │
- │                           │  │                           │
- └───────────────────────────┘  └───────────────────────────┘
+    subgraph Next1["1st-4th Next Month"]
+        B1[TDS Deduction]
+        B2[Customer Account → Compliance]
+        B3[TDS Record: DEDUCTED]
+        B1 --> B2
+        B2 --> B3
+    end
 
+    subgraph Next7["7th Next Month"]
+        C1[TDS Payment to Govt]
+        C2[Compliance pays Govt]
+        C3[TDS Record: PAID]
+        C1 --> C2
+        C2 --> C3
+    end
 
-═══════════════════════════════════════════════════════════════════════════════════════════════
-                              REVERSAL SCENARIOS
-═══════════════════════════════════════════════════════════════════════════════════════════════
+    During --> Next1
+    Next1 --> Next7
+    </div>
+  </div>
 
- ◀───────────── CASE 1 ─────────────▶  ◀──── CASE 2 ────▶  ◀──────── CASE 3 ────────▶
+  <h4>13.1.1 Reversal Scenarios</h4>
+  <div class="mermaid-container">
+    <div class="mermaid">
+flowchart TB
+    subgraph Case1["Case 1: Before TDS Deduction"]
+        C1A[Reversal] --> C1B[TDS: PENDING → CANCELLED]
+        C1B --> C1C[No money movement]
+        C1C --> C1D[Automatic]
+    end
 
- ┌───────────────────────────────────┐ ┌──────────────────┐ ┌──────────────────────────┐
- │ Reversal BEFORE TDS deduction     │ │ Reversal AFTER   │ │ Reversal AFTER TDS paid  │
- │ from customer account             │ │ TDS deduction    │ │ to government            │
- │                                   │ │ but BEFORE       │ │                          │
- │ TDS Payment: PENDING → CANCELLED  │ │ payment to govt  │ │ TDS Payment: PAID →      │
- │                                   │ │                  │ │   REVERSAL_PENDING       │
- │ Action: Cancel TDS Payment        │ │ TDS Payment:     │ │                          │
- │         No money movement needed  │ │ DEDUCTED →       │ │ Action: Alert Ops Team   │
- │                                   │ │   REFUNDED       │ │         Manual recovery  │
- │ ✓ Automatic                       │ │                  │ │         from customer    │
- │                                   │ │ Action: Refund   │ │                          │
- │                                   │ │   to customer    │ │ ⚠️ Cannot recover from   │
- │                                   │ │                  │ │   government             │
- │                                   │ │ ✓ Automatic      │ │                          │
- └───────────────────────────────────┘ └──────────────────┘ └──────────────────────────┘
-</div>
+    subgraph Case2["Case 2: After Deduction, Before Govt"]
+        C2A[Reversal] --> C2B[TDS: DEDUCTED → REFUNDED]
+        C2B --> C2C[Refund to customer]
+        C2C --> C2D[Automatic]
+    end
+
+    subgraph Case3["Case 3: After Paid to Govt"]
+        C3A[Reversal] --> C3B[TDS: PAID → REVERSAL_PENDING]
+        C3B --> C3C[Alert Ops - Manual recovery]
+        C3C --> C3D[Cannot recover from govt]
+    end
+    </div>
+  </div>
 
 
   <h3>13.2 Reversal Scenarios</h3>
@@ -4842,8 +4624,297 @@ func reconcileBBPlusTds() {
   <hr>
 
   <!-- ═══════════════════════════════════════════════════════════════════════════════════ -->
-  <!-- UPDATED TABLE OF CONTENTS                                                             -->
+  <!-- SECTION 20: CODEBASE REFERENCE (from CODEBASE_UNDERSTANDING.md)                       -->
   <!-- ═══════════════════════════════════════════════════════════════════════════════════ -->
+
+  <h2 id="codebase-reference">20. Codebase Reference</h2>
+
+  <p class="muted">
+    Reference from <code>CODEBASE_UNDERSTANDING.md</code> — repository structure, V2 payouts flow,
+    TDS data path, and gap analysis.
+  </p>
+
+  <h3>20.1 Repository Structure</h3>
+
+  <pre><code>payouts/
+├── cmd/                           # Entry points
+│   ├── api/main.go               # API service bootstrap
+│   ├── kafkaConsumers/            # Kafka consumer services
+│   └── workers/                  # Background workers
+├── internal/                      # Core business logic
+│   ├── app/                      # Domain layer
+│   │   ├── dtos/                 # Data Transfer Objects
+│   │   ├── payouts/              # Payout core logic
+│   │   ├── payoutDetails/       # PayoutDetails model
+│   │   └── interfaces/           # Interface definitions
+│   ├── controllers/               # HTTP handlers
+│   ├── routing/                  # API routes
+│   ├── auth/                     # Authentication
+│   └── provider/                 # Service container
+├── pkg/events/                    # Kafka event publishing
+└── config/                        # Configuration files</code></pre>
+
+  <h3>20.2 V2 Payouts Endpoint Flow (Sequence Diagram)</h3>
+
+  <div class="mermaid-container">
+    <div class="mermaid">
+sequenceDiagram
+    participant Client
+    participant Controller as payoutController.go:187
+    participant Core as core.go:469
+    participant Processor as processor/base.go
+    participant DB as Database
+    participant Webhook as fts_transfer_status_webhook
+    participant Kafka
+
+    Client->>+Controller: POST /v2/payouts
+    Controller->>Controller: FundAccountPayout() - Build V2 DTO, validate
+    Controller->>+Core: CreatePayoutToFundAccountV2()
+
+    Core->>Core: Auth validation (internal app only)
+    Core->>Core: Marshal V2 DTO → V1 DTO
+    Core->>Core: Fetch banking account &amp; merchant config
+    Core->>Core: ContactAndFundAccountCreationOnCFA (if composite)
+    Core->>Core: ValidatePayoutCreateInput()
+
+    Note over Core,Processor: BB+ TDS insertion point (between validate and create)
+
+    Core->>+Processor: CreatePayout()
+    Processor->>Processor: Create Payout model
+    Processor->>Processor: CheckIfPayoutDetailsIsNeeded()
+    Processor->>Processor: SetPayoutDetailsInPayout() ← TDS SET HERE
+    Processor->>Processor: Validate, Shield rules, Workflows
+    Processor->>DB: Create payout + payout_details
+    Processor-->>-Core: payout
+    Core-->>-Controller: payout
+    Controller-->>-Client: Response
+
+    Note over Webhook,Kafka: Async: FTS status webhook
+    Webhook->>Webhook: UpdateStatusWithTransferStatusWebhook()
+    Webhook->>Webhook: ProcessTdsForPayout()
+    Webhook->>Kafka: Publish to add-tds-entry*
+    </div>
+  </div>
+
+  <h4>20.2.1 Key Functions by File</h4>
+  <table>
+    <thead>
+      <tr><th>Function</th><th>File:Line</th><th>Purpose</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>FundAccountPayout()</code></td><td>payoutController.go:187</td><td>HTTP handler, validates request</td></tr>
+      <tr><td><code>CreatePayoutToFundAccountV2()</code></td><td>core.go:469</td><td>Core orchestration</td></tr>
+      <tr><td><code>CheckIfPayoutDetailsIsNeeded()</code></td><td>processor/base.go:434</td><td>Determines if PayoutDetails needed</td></tr>
+      <tr><td><code>SetPayoutDetailsInPayout()</code></td><td>processor/base.go:404</td><td>Sets TDS in PayoutDetails</td></tr>
+      <tr><td><code>UpdateStatusWithTransferStatusWebhook()</code></td><td>fts_transfer_status_webhook.go:305</td><td>Handles FTS status changes</td></tr>
+      <tr><td><code>ProcessTdsForPayout()</code></td><td>core.go:7858</td><td>Publishes TDS to Kafka</td></tr>
+    </tbody>
+  </table>
+
+  <h3>20.3 TDS Data Flow: Request → Storage → Kafka</h3>
+
+  <div class="mermaid-container">
+    <div class="mermaid">
+flowchart TB
+    subgraph Phase1["Phase 1: Request"]
+        A[POST /v2/payouts] --> B[FundAccountPayoutRequestV2]
+        B --> C[TDS TDSDetails]
+        C --> D[controller validates]
+    end
+
+    subgraph Phase2["Phase 2: Core Processing"]
+        D --> E[CreatePayoutToFundAccountV2]
+        E --> F[processor.CreatePayout]
+        F --> G[SetPayoutDetailsInPayout]
+        G --> H[tds_category_id → column]
+        G --> I[tds_amount → additional_info JSON]
+    end
+
+    subgraph Phase3["Phase 3: Persistence"]
+        H --> J[(payout_details table)]
+        I --> J
+        F --> K[(payouts table)]
+    end
+
+    subgraph Phase4["Phase 4: Async TDS"]
+        L[FTS Webhook: PROCESSED/REVERSED] --> M[ProcessTdsForPayout]
+        M --> N{source?}
+        N -->|bb_plus| O[add-tds-entry-bb-plus]
+        N -->|else| P[add-tds-entry]
+        O --> Q[Tax-Compliance]
+        P --> R[Vendor-Payments]
+    end
+
+    K --> L
+    J --> M
+    </div>
+  </div>
+
+  <h3>20.4 End-to-End TDS Flow: Payouts → Vendor-Payments</h3>
+
+  <div class="mermaid-container">
+    <div class="mermaid">
+sequenceDiagram
+    participant Payouts
+    participant Kafka
+    participant VP as Vendor-Payments
+
+    Payouts->>Payouts: CreatePayout (tds in payout_details)
+    Payouts->>Payouts: FTS processes transfer
+    Payouts->>Payouts: Status → PROCESSED
+    Payouts->>Payouts: ProcessTdsForPayout()
+
+    Payouts->>Kafka: Publish add-tds-entry
+    Note over Kafka: entity_id, tds_amount, tds_category_id, merchant_id
+
+    Kafka->>VP: HandleInitiateTdsJob
+    VP->>VP: InitiateTds - idempotency check
+    VP->>VP: AddTaxPaymentEntry
+    VP->>VP: Create Record (credit)
+    VP->>VP: Update TaxPayment bucket
+    VP->>Payouts: UpdateTaxPaymentIdOnPayout
+    </div>
+  </div>
+
+  <h3>20.5 BB+ System Architecture</h3>
+
+  <div class="mermaid-container">
+    <div class="mermaid">
+flowchart TB
+    subgraph Frontend
+        UI[BB+ Dashboard]
+        BFF[BFF]
+    end
+
+    subgraph Backend
+        TC[Tax-Compliance]
+        PO[Payouts]
+    end
+
+    subgraph KafkaTopics
+        K1[add-tds-entry]
+        K2[add-tds-entry-bb-plus]
+    end
+
+    subgraph Consumers
+        VP[Vendor-Payments]
+        TCC[Tax-Compliance Consumer]
+    end
+
+    UI --> BFF
+    BFF -->|Compute preview| TC
+    BFF -->|POST /v2/payouts with pre-computed TDS| PO
+    PO -->|source != bb_plus| K1
+    PO -->|source == bb_plus| K2
+    K1 --> VP
+    K2 --> TCC
+    TCC --> TC
+    </div>
+  </div>
+
+  <h3>20.6 Gap Analysis: Current vs BB+ Requirements</h3>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Aspect</th>
+        <th>Current Implementation</th>
+        <th>BB+ Requirement</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>TDS Fields</strong></td>
+        <td><code>category_id</code>, <code>amount</code> (pre-computed)</td>
+        <td><code>category</code>, <code>source</code>, <code>is_ldc_applicable</code>, <code>contact_id</code> (compute inputs)</td>
+      </tr>
+      <tr>
+        <td><strong>Amount Handling</strong></td>
+        <td>Caller sends net amount</td>
+        <td>Caller sends gross; Payouts derives net (Approach 1) or BFF sends net (Approach 3)</td>
+      </tr>
+      <tr>
+        <td><strong>TDS Compute</strong></td>
+        <td>None — caller provides values</td>
+        <td>Approach 1: Payouts calls Tax-Compliance. Approach 3: BFF calls, sends pre-computed</td>
+      </tr>
+      <tr>
+        <td><strong>Storage</strong></td>
+        <td>Basic: <code>tds_category_id</code> + <code>tds_amount</code></td>
+        <td>Extended: BB+ fields in <code>additional_info</code></td>
+      </tr>
+      <tr>
+        <td><strong>Kafka Message</strong></td>
+        <td>Minimal TDS data</td>
+        <td>Full compute result for <code>tds_payment</code> creation (BB+ topic)</td>
+      </tr>
+      <tr>
+        <td><strong>Kafka Topic</strong></td>
+        <td><code>add-tds-entry</code> (Vendor-Payments)</td>
+        <td>New: <code>add-tds-entry-bb-plus</code> (Tax-Compliance)</td>
+      </tr>
+      <tr>
+        <td><strong>Tax-Compliance Compute</strong></td>
+        <td>N/A</td>
+        <td>⚠️ <code>/v1/tds/compute</code> endpoint needs to be built</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>20.7 Kafka Topic Routing Logic</h3>
+
+  <div class="mermaid-container">
+    <div class="mermaid">
+flowchart TD
+    A[ProcessTdsForPayout called] --> B{MoneyTransferredStatus?}
+    B -->|No| C[Return - no publish]
+    B -->|Yes| D[Get payoutDetails]
+    D --> E{tds.source == 'bb_plus'?}
+    E -->|Yes| F[Publish to add-tds-entry-bb-plus]
+    E -->|No| G[Publish to add-tds-entry]
+    F --> H[Tax-Compliance Consumer]
+    G --> I[Vendor-Payments Consumer]
+    </div>
+  </div>
+
+  <h3>20.8 Public vs Internal API</h3>
+
+  <div class="info">
+    <h4>Key Distinction</h4>
+    <p><strong>Public API</strong> <code>POST /v1/payouts</code> — Does NOT expose TDS fields. Documented at razorpay.com.</p>
+    <p><strong>Internal API</strong> <code>POST /v2/payouts</code> — Used by Dashboard/BFF. Has <code>tds</code> object with <code>category_id</code>, <code>amount</code>.</p>
+  </div>
+
+  <h3>20.9 Key Files for BB+ Integration</h3>
+
+  <table>
+    <thead>
+      <tr><th>File</th><th>Purpose</th><th>Changes for BB+</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>internal/app/dtos/payoutDetails.go</code></td><td>TDSDetails struct</td><td>Add <code>Source</code>, <code>GrossAmount</code>, <code>Breakdown</code></td></tr>
+      <tr><td><code>internal/app/dtos/payout_create.go</code></td><td>V2 Request DTO</td><td>Relax <code>Amount</code> binding if Approach 1</td></tr>
+      <tr><td><code>internal/app/payoutDetails/additional_info_model.go</code></td><td>AdditionalInfoStruct</td><td>Add BB+ fields</td></tr>
+      <tr><td><code>internal/app/payouts/core.go</code></td><td>Core payout logic</td><td>Compute call block (Approach 1) or topic routing (Approach 3)</td></tr>
+      <tr><td><code>internal/app/payouts/processor/base.go</code></td><td>Payout processor</td><td>Store BB+ data in SetPayoutDetailsInPayout</td></tr>
+      <tr><td><code>internal/app/payouts/constants.go</code></td><td>Constants</td><td>Add <code>TdsTopicBBPlus</code></td></tr>
+    </tbody>
+  </table>
+
+  <hr>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════════════ -->
+  <!-- MERMAID INITIALIZATION                                                               -->
+  <!-- ═══════════════════════════════════════════════════════════════════════════════════ -->
+
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'neutral',
+      flowchart: { useMaxWidth: true, htmlLabels: true },
+      sequence: { useMaxWidth: true, wrap: true }
+    });
+  </script>
 
   <p class="muted" style="text-align: center; margin-top: 40px;">
     End of Document
