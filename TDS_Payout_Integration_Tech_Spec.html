@@ -821,32 +821,68 @@ Example: category 194J, rate 10%
     </tbody>
   </table>
 
-  <h3 id="approach-coverage">1.9 Approach Coverage (UI vs API)</h3>
+  <h3 id="approach-coverage">1.9 Channel Coverage (All → Approach 3)</h3>
+
+  <div class="warning">
+    <h4>API Payouts — Core Design Concern</h4>
+    <p>
+      In Dashboard and Bulk flows, TDS compute values are available <strong>before</strong> the payout request —
+      Tax-Compliance (BFF) computes and passes them in. For direct <strong>API Payouts</strong>, the merchant only
+      has raw inputs (category, PAN, gross amount) — TDS values are not yet available.
+    </p>
+    <p>
+      <strong>If Payouts calls Tax-Compliance synchronously</strong> to resolve this: +~200ms latency, availability coupling
+      (Payouts fails if Tax-Compliance is down), high blast radius in Payouts. This is <strong>rejected</strong>.
+    </p>
+    <p>
+      <strong>Adopted solution:</strong> Tax-Compliance exposes a public compute API. API merchants call compute first,
+      then create the payout with pre-computed values. Payouts <em>never</em> integrates Tax-Compliance.
+      Same two-step pattern as Dashboard/Bulk (just surfaced to the merchant for API flows).
+    </p>
+  </div>
+
   <table>
     <thead>
-      <tr><th>Channel</th><th>Compute Trigger</th><th>Creation Flow</th><th>Recommended Approach</th></tr>
+      <tr>
+        <th>Channel</th>
+        <th>TDS values at payout request?</th>
+        <th>Who computes TDS?</th>
+        <th>Payout API called by</th>
+        <th>Approach</th>
+      </tr>
     </thead>
     <tbody>
       <tr>
-        <td>BB+ UI (Single Payout)</td>
-        <td>UI/FE → Tax-Compliance (external, for preview display only)</td>
-        <td>UI/FE → <code>POST /v1/payouts</code> (TDS compute inputs) → Payouts calls compute internally</td>
-        <td>Approach 1</td>
+        <td><strong>BB+ UI (Single)</strong></td>
+        <td class="pro">YES — preview shown to user before confirm</td>
+        <td>Tax-Compliance (BFF)</td>
+        <td>Tax-Compliance (BFF)</td>
+        <td><strong>Approach 3</strong></td>
       </tr>
       <tr>
-        <td>BB+ Bulk Payout</td>
-        <td>Compute runs for all rows upfront → preview file generated for user to review before confirming</td>
-        <td>CSV with TDS input columns → compute per row → preview file → user confirms → Payouts creates payouts</td>
-        <td>Approach 1</td>
+        <td><strong>BB+ Bulk CSV</strong></td>
+        <td class="pro">YES — computed per row, preview before confirm</td>
+        <td>Tax-Compliance (BFF)</td>
+        <td>Tax-Compliance (BFF)</td>
+        <td><strong>Approach 3</strong></td>
       </tr>
       <tr>
-        <td>Merchant API Integration</td>
-        <td>Payouts → Tax-Compliance (inline, S2S)</td>
-        <td>Merchant → <code>POST /v1/payouts</code> (TDS compute inputs) → same Approach 1 flow</td>
-        <td>Approach 1</td>
+        <td><strong>Merchant API</strong></td>
+        <td class="con">NO — merchant has raw inputs only</td>
+        <td>Merchant calls Tax-Compliance compute API</td>
+        <td>Merchant (with pre-computed values)</td>
+        <td><strong>Approach 3</strong></td>
       </tr>
     </tbody>
   </table>
+
+  <div class="info">
+    <h4>Storage Split</h4>
+    <ul>
+      <li><strong>Payouts:</strong> Stores only primitive fields on the payout row — <code>tds_amount</code>, <code>tds_rate</code>, <code>tds_category</code>, <code>payee_pan</code>, <code>source</code>. No new entity, no Tax-Compliance call at creation time.</li>
+      <li><strong>Tax-Compliance:</strong> Creates the full <code>tds_payments</code> entity asynchronously from the Kafka event after payout completion. All audit fields are carried in the Kafka message.</li>
+    </ul>
+  </div>
 
   <h3 id="vendor-payments-isolation">1.10 Vendor-Payments Isolation (Non-Impact)</h3>
   <div class="info">
@@ -1170,15 +1206,16 @@ sequenceDiagram
 
   <div class="approach-header">
     <span class="approach-badge badge-recommended">RECOMMENDED — All Channels</span>
-    <span class="muted">BFF/Dashboard pre-computes TDS; Payouts receives pre-computed values; minimal Payouts changes</span>
+    <span class="muted">Tax-Compliance (BFF) pre-computes TDS; Payouts receives pre-computed values; minimal Payouts changes</span>
   </div>
 
   <div class="recommendation">
     <h3>Core Principle: Keep Payouts Dumb About TDS Computation</h3>
     <p>
       Payouts should <strong>NOT</strong> call Tax-Compliance during payout creation.
-      Instead, Payouts receives <strong>pre-computed</strong> TDS values — the same pattern used by Vendor-Payments today.
-      The only new responsibility: route to correct Kafka topic based on <code>source</code>.
+      Instead, Payouts receives <strong>pre-computed</strong> TDS values — pre-computed by Tax-Compliance (BFF) for Dashboard/Bulk,
+      or by the merchant themselves (after calling Tax-Compliance compute API) for API payouts.
+      The only new Payouts responsibility: accept the fields and route to the correct Kafka topic based on <code>source</code>.
     </p>
   </div>
 
@@ -1293,6 +1330,102 @@ flowchart TB
   </div>
 
   <p><strong>Key benefits:</strong> Zero S2S calls in payout critical path • Compute before payout • Payouts stays dumb about TDS • Same pattern as Vendor-Payments</p>
+
+  <h3>4.2.3 Channel-by-Channel Sequence Diagrams</h3>
+
+  <p>
+    The three channels differ only in <em>who performs the compute step</em>. Payouts receives identical
+    pre-computed input in all cases. The Kafka → <code>tds_payments</code> creation path is the same for all channels.
+  </p>
+
+  <h4>Channel 1: Dashboard (Single Payout)</h4>
+  <div class="mermaid-container">
+    <div class="mermaid">
+sequenceDiagram
+    participant M as Merchant (UI)
+    participant TC as Tax-Compliance (BFF)
+    participant PO as Payouts
+    participant K as Kafka
+
+    M->>TC: Enter gross amount, category, PAN
+    TC->>TC: Compute TDS internally
+    TC->>M: Preview — Gross / TDS / Net
+    M->>TC: Confirm
+    TC->>PO: POST /v2/payouts (amount=NET, tds_amount, tds_rate, source=bb_plus)
+    Note over PO: No S2S — store fields only
+    PO-->>TC: payout created
+    PO->>PO: Status → processed
+    PO->>K: add-tds-entry-bb-plus
+    K->>TC: Consumer creates tds_payments entity
+    </div>
+  </div>
+
+  <h4>Channel 2: Bulk CSV</h4>
+  <div class="mermaid-container">
+    <div class="mermaid">
+sequenceDiagram
+    participant M as Merchant (UI)
+    participant TC as Tax-Compliance (BFF)
+    participant PO as Payouts
+    participant K as Kafka
+
+    M->>TC: Upload CSV (gross_amount, category, PAN per row)
+    loop For each row
+        TC->>TC: Compute TDS
+    end
+    TC->>M: Preview file (Gross / TDS / Net per row)
+    M->>TC: Confirm
+    loop For each row
+        TC->>PO: POST /v2/payouts (NET + pre-computed tds fields)
+        PO-->>TC: payout created
+        PO->>K: add-tds-entry-bb-plus (on processed)
+        K->>TC: Consumer creates tds_payments entity
+    end
+    </div>
+  </div>
+
+  <h4>Channel 3: API Payouts (Direct Merchant Integration)</h4>
+  <div class="warning">
+    <p>
+      This is the only channel where TDS compute values are <strong>not pre-known</strong>.
+      The merchant holds raw inputs only. Payouts must <em>not</em> call Tax-Compliance inline
+      (latency + blast radius). Instead, Tax-Compliance exposes a public compute endpoint and
+      the merchant makes two sequential calls.
+    </p>
+  </div>
+  <div class="mermaid-container">
+    <div class="mermaid">
+sequenceDiagram
+    participant M as Merchant (API client)
+    participant TC as Tax-Compliance
+    participant PO as Payouts
+    participant K as Kafka
+
+    Note over M,TC: Step 1 — Pre-compute (Merchant calls Tax-Compliance directly)
+    M->>TC: POST /v1/tds/compute (gross, category, PAN)
+    TC-->>M: tds_amount, tds_rate, net_amount, breakdown
+
+    Note over M,PO: Step 2 — Create payout with pre-computed values
+    M->>PO: POST /v2/payouts (amount=NET, tds_amount, tds_rate, source=bb_plus)
+    Note over PO: No S2S to Tax-Compliance — store fields only
+    PO-->>M: payout created
+
+    Note over PO,K: Async — same path as UI and Bulk
+    PO->>PO: Status → processed
+    PO->>K: add-tds-entry-bb-plus
+    K->>TC: Consumer creates tds_payments entity
+    </div>
+  </div>
+
+  <div class="info">
+    <h4>Why Two Calls for API Merchants — Not a Hack</h4>
+    <ul>
+      <li>Payouts <em>cannot</em> call Tax-Compliance inline without coupling two services and adding latency.</li>
+      <li>Payouts <em>cannot</em> compute TDS post-creation — the deduction amount must be known at payout creation time for correct money routing.</li>
+      <li>Two-call pattern is standard for TDS-aware payment integrations. Tax-Compliance compute call is lightweight (~50ms) and cacheable per merchant/category.</li>
+      <li>For Dashboard and Bulk, Tax-Compliance (BFF) hides the two-step flow. API merchants follow the same contract explicitly.</li>
+    </ul>
+  </div>
 
   <h3>4.3 API Design: No New Version Needed</h3>
 
