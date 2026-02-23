@@ -2,10 +2,149 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta http-equiv="refresh" content="0; url=TDS_Payout_Integration_Tech_Spec.html">
-  <title>BB+ TDS Integration - Tech Spec</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BB+ TDS Payout Integration — Docs</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Google Sans", "Segoe UI", sans-serif;
+      background: #f8fafc;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 16px;
+    }
+    .container {
+      max-width: 680px;
+      width: 100%;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+    .badge {
+      display: inline-block;
+      background: #1a73e8;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 4px;
+      margin-bottom: 16px;
+    }
+    h1 {
+      font-size: 28px;
+      font-weight: 700;
+      color: #0f172a;
+      line-height: 1.3;
+      margin-bottom: 10px;
+    }
+    .subtitle {
+      color: #64748b;
+      font-size: 15px;
+    }
+    .cards {
+      display: grid;
+      gap: 20px;
+    }
+    .card {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 28px 32px;
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      align-items: flex-start;
+      gap: 20px;
+      transition: box-shadow 0.15s, border-color 0.15s;
+    }
+    .card:hover {
+      border-color: #1a73e8;
+      box-shadow: 0 4px 20px rgba(26,115,232,0.12);
+    }
+    .icon {
+      flex-shrink: 0;
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+    }
+    .icon-full { background: #eff6ff; }
+    .icon-summary { background: #f0fdf4; }
+    .card-body h2 {
+      font-size: 17px;
+      font-weight: 600;
+      color: #0f172a;
+      margin-bottom: 6px;
+    }
+    .card-body p {
+      font-size: 14px;
+      color: #64748b;
+      line-height: 1.55;
+    }
+    .tag {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-top: 10px;
+      letter-spacing: 0.4px;
+    }
+    .tag-full { background: #dbeafe; color: #1d4ed8; }
+    .tag-summary { background: #dcfce7; color: #166534; }
+    .footer {
+      text-align: center;
+      margin-top: 40px;
+      font-size: 13px;
+      color: #94a3b8;
+    }
+  </style>
 </head>
 <body>
-  <p>Redirecting to <a href="TDS_Payout_Integration_Tech_Spec.html">TDS Payout Integration Tech Spec</a>...</p>
+  <div class="container">
+    <div class="header">
+      <div class="badge">BB+ Platform</div>
+      <h1>TDS Payout Integration<br>Technical Specification</h1>
+      <p class="subtitle">v9.0 &nbsp;·&nbsp; Author: Prashant Chauhan &nbsp;·&nbsp; Feb 2026</p>
+    </div>
+
+    <div class="cards">
+      <a class="card" href="TDS_Payout_Integration_Tech_Spec_Summary.html">
+        <div class="icon icon-summary">📋</div>
+        <div class="card-body">
+          <h2>Summary Document</h2>
+          <p>
+            High-level overview of the problem, all three approaches, the recommended Pre-Compute Pattern,
+            and channel-by-channel flow diagrams (Dashboard, Bulk, API). Start here.
+          </p>
+          <span class="tag tag-summary">Summary · ~20 min read</span>
+        </div>
+      </a>
+
+      <a class="card" href="TDS_Payout_Integration_Tech_Spec.html">
+        <div class="icon icon-full">📄</div>
+        <div class="card-body">
+          <h2>Full Technical Specification</h2>
+          <p>
+            Complete implementation details — API contracts, Go struct changes, SQL schemas,
+            Kafka routing, codebase reference, NFRs, testing strategy, security, and observability.
+          </p>
+          <span class="tag tag-full">Full Spec · Deep-dive</span>
+        </div>
+      </a>
+    </div>
+
+    <div class="footer">
+      flanker-23/bb-plus-tds-tech-spec &nbsp;·&nbsp; GitHub Pages
+    </div>
+  </div>
 </body>
 </html>
