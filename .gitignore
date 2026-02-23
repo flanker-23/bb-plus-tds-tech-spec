@@ -12,3 +12,5 @@ __pycache__/
 
 # Claude
 .claude/
+convert_summary_to_docx.py
+.venv/
