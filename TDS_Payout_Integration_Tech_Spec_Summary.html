@@ -1,0 +1,1305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>TDS Payout Integration - Technical Specification (Summary)</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      line-height: 1.6;
+      color: #1f2933;
+      margin: 0;
+      padding: 24px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    h1, h2, h3, h4 {
+      color: #0b2239;
+      margin-top: 32px;
+    }
+    h1 {
+      border-bottom: 3px solid #3182ce;
+      padding-bottom: 12px;
+    }
+    h2 {
+      border-bottom: 1px solid #e4e7eb;
+      padding-bottom: 8px;
+    }
+    code, pre {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 13px;
+    }
+    pre {
+      background: #f5f7fa;
+      padding: 16px;
+      border: 1px solid #e4e7eb;
+      border-radius: 6px;
+      overflow-x: auto;
+    }
+    code {
+      background: #eef2f7;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    pre code {
+      background: none;
+      padding: 0;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 16px 0 24px 0;
+    }
+    th, td {
+      border: 1px solid #e4e7eb;
+      padding: 10px 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: #f0f4f8;
+      font-weight: 600;
+    }
+    tr:nth-child(even) {
+      background: #fafbfc;
+    }
+    .muted {
+      color: #52606d;
+    }
+    .pro { color: #276749; }
+    .con { color: #c53030; }
+    .recommendation {
+      background: #ebf8ff;
+      border: 1px solid #90cdf4;
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin: 20px 0;
+    }
+    .recommendation h3, .recommendation h4 {
+      margin-top: 0;
+      color: #2b6cb0;
+    }
+    .warning {
+      background: #fffaf0;
+      border: 1px solid #fbd38d;
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin: 20px 0;
+    }
+    .warning h4 {
+      margin-top: 0;
+      color: #c05621;
+    }
+    .info {
+      background: #e6fffa;
+      border: 1px solid #81e6d9;
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin: 20px 0;
+    }
+    .info h4 {
+      margin-top: 0;
+      color: #285e61;
+    }
+    .flow-diagram {
+      background: #1a202c;
+      color: #e2e8f0;
+      padding: 20px;
+      border-radius: 8px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.4;
+      overflow-x: auto;
+      white-space: pre;
+    }
+    .toc {
+      background: #f7fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+    .toc h3 {
+      margin-top: 0;
+    }
+    .toc ul {
+      margin: 0;
+      padding-left: 20px;
+    }
+    .toc li {
+      margin: 6px 0;
+    }
+    .toc a {
+      color: #3182ce;
+      text-decoration: none;
+    }
+    .toc a:hover {
+      text-decoration: underline;
+    }
+    .approach-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .approach-badge {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .badge-recommended {
+      background: #c6f6d5;
+      color: #276749;
+    }
+    .badge-alternative {
+      background: #e2e8f0;
+      color: #4a5568;
+    }
+    .badge-not-recommended {
+      background: #fed7d7;
+      color: #c53030;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #e2e8f0;
+      margin: 32px 0;
+    }
+    .version-info {
+      display: flex;
+      gap: 40px;
+      margin-bottom: 20px;
+    }
+    .version-info div {
+      display: flex;
+      gap: 8px;
+    }
+    .version-info span:first-child {
+      font-weight: 600;
+      color: #4a5568;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>TDS Payout Integration - Technical Specification (Summary)</h1>
+
+  <div class="version-info">
+    <div><span>Version:</span> <span>8.0 Summary</span></div>
+    <div><span>Author:</span> <span>Prashant Chauhan</span></div>
+    <div><span>Date:</span> <span>February 2026</span></div>
+  </div>
+
+  <p class="muted">
+    This document presents a simplified overview of the TDS (Tax Deducted at Source) integration for BB+ payouts.
+    It focuses on the <strong>problem statement</strong>, <strong>three solution approaches</strong>, and the <strong>recommended approach</strong>.
+    Implementation details, code snippets, and detailed technical specifications have been minimized.
+  </p>
+
+  <div class="toc">
+    <h3>Table of Contents</h3>
+    <ul>
+      <li><a href="#overview">1. Overview & Problem Statement</a></li>
+      <li><a href="#approach-1">2. Approach 1: Inline Compute Pattern</a> (Not Recommended)</li>
+      <li><a href="#approach-2">3. Approach 2: Tax-Compliance Orchestrated</a> (Alternative)</li>
+      <li><a href="#approach-3">4. Approach 3: Pre-Compute Pattern</a> <strong>(RECOMMENDED)</strong></li>
+      <li><a href="#comparison">5. Comparison of Approaches</a></li>
+      <li><a href="#recommendation">6. Final Recommendation</a></li>
+      <li><a href="#nfrs">7. Non-Functional Requirements (Summary)</a></li>
+      <li><a href="#security">8. Security & Observability (Summary)</a></li>
+    </ul>
+  </div>
+
+  <hr>
+
+  <h2 id="overview">1. Overview & Problem Statement</h2>
+
+  <h3>1.1 Business Context: Why TDS Support?</h3>
+  <p>
+    BB+ merchants need to comply with Indian tax regulations when making vendor payments.
+    When TDS (Tax Deducted at Source) applies:
+  </p>
+  <ul>
+    <li>Merchant enters a <strong>gross amount</strong> (e.g., ₹10,000)</li>
+    <li>Selects a <strong>TDS category</strong> (e.g., Section 194J - Professional Services at 10%)</li>
+    <li>Optionally applies <strong>Lower Deduction Certificate (LDC)</strong> for reduced rates</li>
+    <li>System calculates TDS amount (₹1,000) and creates a payout for the <strong>net amount</strong> (₹9,000) to the vendor</li>
+    <li>TDS amount is tracked for monthly filing and payment to the government</li>
+  </ul>
+
+  <h3>1.2 The Problem</h3>
+  <div class="warning">
+    <h4>Current State</h4>
+    <p>
+      The existing Payouts service does not support BB+ TDS computation and tracking.
+      We need to integrate TDS functionality while:
+    </p>
+    <ul>
+      <li>Not impacting existing Vendor-Payments flows (which have their own TDS handling)</li>
+      <li>Supporting all payout types: <strong>Single Payout (UI)</strong>, <strong>Bulk Payout (CSV)</strong>, and <strong>API Payouts</strong></li>
+      <li>Maintaining clear separation of concerns between Payouts and Tax-Compliance services</li>
+      <li>Ensuring data consistency between payout records and TDS filing records</li>
+    </ul>
+  </div>
+
+  <h3>1.3 Services Involved</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Service</th>
+        <th>Responsibility</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Tax-Compliance</strong></td>
+        <td>
+          <ul>
+            <li>Computes TDS based on category, rate, and LDC status</li>
+            <li>Manages TDS Payment entities for compliance and filing</li>
+            <li>Validates TDS categories and PAN details</li>
+          </ul>
+        </td>
+      </tr>
+      <tr>
+        <td><strong>Payouts</strong></td>
+        <td>
+          <ul>
+            <li>Creates payout records for net amount to vendor</li>
+            <li>Processes fund transfers</li>
+            <li>Emits payout status updates</li>
+            <li>Stores TDS information for audit trail</li>
+          </ul>
+        </td>
+      </tr>
+      <tr>
+        <td><strong>Dashboard/BFF</strong></td>
+        <td>
+          <ul>
+            <li>Orchestrates UI flows</li>
+            <li>Calls APIs and presents data to merchants</li>
+          </ul>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>1.4 Amount Relationship</h3>
+  <div class="info">
+    <h4>Key Formula</h4>
+    <pre><code>Gross Amount = Net Amount + TDS Amount
+
+Example: Section 194J (10% rate)
+  Gross Amount (vendor payment):  ₹10,000
+  TDS Amount (10%):               ₹1,000
+  Net Amount (payout to vendor):  ₹9,000</code></pre>
+  </div>
+
+  <h3>1.5 Key Entities</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Entity</th>
+        <th>Service</th>
+        <th>Purpose</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>payout</code></td>
+        <td>Payouts</td>
+        <td>The payment to vendor (net amount after TDS deduction)</td>
+      </tr>
+      <tr>
+        <td><code>payout_details</code></td>
+        <td>Payouts</td>
+        <td>Extended TDS information (category, amounts, breakdown) stored as JSON</td>
+      </tr>
+      <tr>
+        <td><code>tds_payment</code></td>
+        <td>Tax-Compliance</td>
+        <td>TDS record for government filing (includes deductee PAN, amounts, category details)</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>1.6 Coverage: All Payout Types</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Payout Type</th>
+        <th>Description</th>
+        <th>TDS Handling</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Single Payout (UI)</strong></td>
+        <td>Merchant creates one payout via Dashboard</td>
+        <td>Preview TDS breakdown before confirming; one compute call per payout</td>
+      </tr>
+      <tr>
+        <td><strong>Bulk Payout (CSV)</strong></td>
+        <td>Merchant uploads CSV with multiple payouts</td>
+        <td>Compute TDS for all rows upfront; generate preview file; user confirms before processing</td>
+      </tr>
+      <tr>
+        <td><strong>API Payouts</strong></td>
+        <td>Merchant integrates via API</td>
+        <td>Same pattern as UI - caller computes TDS first, then creates payout with pre-computed values</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <hr>
+
+  <h2 id="approach-1">2. Approach 1: Inline Compute Pattern</h2>
+
+  <div class="approach-header">
+    <span class="approach-badge badge-not-recommended">Not Recommended</span>
+    <span class="muted">Payout API accepts TDS inputs; Payouts calls Tax-Compliance internally (S2S); async TDS entity creation</span>
+  </div>
+
+  <h3>2.1 How It Works</h3>
+  <p>
+    In this approach, the Payouts service accepts TDS computation inputs (gross amount, category, contact details)
+    and internally calls the Tax-Compliance service to compute TDS before creating the payout.
+  </p>
+
+  <div class="info">
+    <h4>Flow Summary</h4>
+    <ol>
+      <li><strong>Preview (UI only):</strong> Dashboard calls Tax-Compliance compute API to show TDS breakdown to merchant</li>
+      <li><strong>Create Payout:</strong> Dashboard sends TDS inputs to Payouts API with gross amount</li>
+      <li><strong>Inline Compute:</strong> Payouts makes S2S call to Tax-Compliance compute API</li>
+      <li><strong>Amount Derivation:</strong> Payouts derives net amount (gross - TDS) and stores payout with net amount</li>
+      <li><strong>Async TDS Entity:</strong> When payout reaches terminal state, Payouts publishes to Kafka; Tax-Compliance creates TDS Payment entity</li>
+    </ol>
+  </div>
+
+  <h3>2.2 Flow Diagram (High-Level)</h3>
+
+<div class="flow-diagram">
+APPROACH 1: INLINE COMPUTE PATTERN
+═══════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ PHASE 1: TDS PREVIEW (UI Only)                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+
+    ┌───────────┐                            ┌──────────────────┐
+    │ Dashboard │─────POST /v1/tds/compute──→│ Tax-Compliance   │
+    └───────────┘                            └──────────────────┘
+                                                      │
+                                                      ▼
+                                         Display Preview on UI:
+                                    ┌────────────────────────────┐
+                                    │ Gross:  ₹10,000            │
+                                    │ TDS:    ₹1,000  (10%)      │
+                                    │ Net:    ₹9,000             │
+                                    └────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ PHASE 2: CREATE PAYOUT (⚠️ Critical Path - S2S Call!)                  │
+└─────────────────────────────────────────────────────────────────────────┘
+
+    ┌───────────┐                            ┌──────────────────┐
+    │ Dashboard │─────POST /v1/payouts───────→│ Payouts Service  │
+    └───────────┘      amount: 1000000 GROSS  └──────────────────┘
+                       tds: {category, contact}        │
+                                                       │
+                                    ┌──────────────────┘
+                                    │ ⚠️ S2S CALL (+50-200ms latency!)
+                                    ▼
+                         ┌──────────────────┐
+                         │ Tax-Compliance   │
+                         │ compute()        │
+                         └──────────────────┘
+                                    │
+                                    │ Returns: tds_amount = 100000
+                                    ▼
+                         ┌──────────────────┐
+                         │ Payouts Service  │
+                         │ ⚠️ MUTATES AMOUNT│
+                         │ 1000000→900000   │
+                         │ Stores payout    │
+                         └──────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ PHASE 3: ASYNC TDS PAYMENT CREATION                                     │
+└─────────────────────────────────────────────────────────────────────────┘
+
+    Payout reaches "processed" state
+           │
+           ▼
+    ┌──────────────────┐        Kafka Topic:           ┌──────────────────┐
+    │ Payouts Service  │────add-tds-entry-bb-plus──────→│ Tax-Compliance   │
+    └──────────────────┘                                │ Consumer         │
+                                                        └──────────────────┘
+                                                                │
+                                                                ▼
+                                                    Creates tds_payment entity
+</div>
+
+  <h3>2.3 Payout Type Considerations</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Payout Type</th>
+        <th>Impact</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Single Payout (UI)</strong></td>
+        <td>One S2S call per payout (+50-200ms latency)</td>
+      </tr>
+      <tr>
+        <td><strong>Bulk Payout (CSV)</strong></td>
+        <td>S2S call for every row during payout creation (high latency for bulk operations)</td>
+      </tr>
+      <tr>
+        <td><strong>API Payouts</strong></td>
+        <td>External API users pay latency cost; service coupling creates reliability risk</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>2.4 Pros and Cons</h3>
+  <table>
+    <thead>
+      <tr><th>Pros</th><th>Cons</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="pro">Single API call for merchant/caller</td>
+        <td class="con">S2S call adds 50-200ms latency to every payout</td>
+      </tr>
+      <tr>
+        <td class="pro">Payout and TDS data stored atomically</td>
+        <td class="con">Payouts fails if Tax-Compliance is down (tight coupling)</td>
+      </tr>
+      <tr>
+        <td class="pro">Simple integration for frontend</td>
+        <td class="con">Domain leakage - Payouts must understand TDS computation</td>
+      </tr>
+      <tr>
+        <td></td>
+        <td class="con">Amount mutation (gross→net) is risky and error-prone</td>
+      </tr>
+      <tr>
+        <td></td>
+        <td class="con">TDS Payment entity created asynchronously (not in API response)</td>
+      </tr>
+      <tr>
+        <td></td>
+        <td class="con">High testing complexity (must mock Tax-Compliance in all tests)</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="warning">
+    <h4>Why Not Recommended</h4>
+    <p>
+      This approach introduces significant technical debt: latency overhead, service coupling,
+      domain leakage, and risky amount mutation. The synchronous S2S call in the critical path
+      makes payouts dependent on Tax-Compliance availability.
+    </p>
+  </div>
+
+  <hr>
+
+  <h2 id="approach-2">3. Approach 2: Tax-Compliance Orchestrated</h2>
+
+  <div class="approach-header">
+    <span class="approach-badge badge-alternative">Alternative</span>
+    <span class="muted">Tax-Compliance orchestrates both TDS computation and payout creation</span>
+  </div>
+
+  <h3>3.1 How It Works</h3>
+  <p>
+    In this approach, Tax-Compliance becomes the orchestrator. It exposes a single API endpoint
+    that creates both the TDS Payment entity and the payout.
+  </p>
+
+  <div class="info">
+    <h4>Flow Summary</h4>
+    <ol>
+      <li><strong>Preview (UI only):</strong> Dashboard calls Tax-Compliance compute API to show TDS breakdown</li>
+      <li><strong>Single API Call:</strong> Dashboard calls Tax-Compliance payout creation API (not Payouts directly)</li>
+      <li><strong>Tax-Compliance Orchestration:</strong>
+        <ul>
+          <li>Computes TDS</li>
+          <li>Creates TDS Payment entity (synchronously)</li>
+          <li>Calls Payouts API (S2S) to create payout</li>
+          <li>Returns both TDS Payment ID and Payout ID in response</li>
+        </ul>
+      </li>
+      <li><strong>Status Sync:</strong> Tax-Compliance listens to payout status updates via existing Kafka topic</li>
+    </ol>
+  </div>
+
+  <h3>3.2 Flow Diagram (High-Level)</h3>
+
+<div class="flow-diagram">
+APPROACH 2: TAX-COMPLIANCE ORCHESTRATED
+═══════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ PHASE 1: TDS PREVIEW (UI Only)                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+
+    ┌───────────┐                            ┌──────────────────┐
+    │ Dashboard │─────POST /v1/tds/compute──→│ Tax-Compliance   │
+    └───────────┘                            └──────────────────┘
+                                                      │
+                                                      ▼
+                                         Display Preview on UI:
+                                    ┌────────────────────────────┐
+                                    │ Gross:  ₹10,000            │
+                                    │ TDS:    ₹1,000  (10%)      │
+                                    │ Net:    ₹9,000             │
+                                    └────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ PHASE 2: CREATE PAYOUT VIA TAX-COMPLIANCE (Orchestrator Pattern)        │
+└─────────────────────────────────────────────────────────────────────────┘
+
+    ┌───────────┐                            ┌──────────────────────────────┐
+    │ Dashboard │─────POST /v1/tds/payout───→│ Tax-Compliance               │
+    └───────────┘      gross_amount: 1000000 │ (Orchestrator)               │
+                       category: "194J"       └──────────────────────────────┘
+                       contact_id: "xxx"                 │
+                                                         │
+                                    ┌────────────────────┘
+                                    │ Step 1: Compute TDS → 100000
+                                    │ Step 2: Create tds_payment (pending)
+                                    │
+                                    ▼
+                         ┌──────────────────┐
+                         │ Tax-Compliance   │──S2S Call──┐
+                         └──────────────────┘            │
+                                    ▲                     ▼
+                                    │              ┌──────────────────┐
+                                    │              │ Payouts Service  │
+                                    │              │ Create payout    │
+                                    │              │ (net: 900000)    │
+                                    │              └──────────────────┘
+                                    │ Step 4: Update                │
+                                    │ tds_payment (success)         │
+                                    └───────────────────────────────┘
+                                    │
+                                    ▼
+                            Return: { tds_payment_id, payout_id }
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ PHASE 3: STATUS SYNC (Async Updates)                                    │
+└─────────────────────────────────────────────────────────────────────────┘
+
+    Payout status changes (processed/reversed/failed)
+           │
+           ▼
+    ┌──────────────────┐     Kafka Topic:           ┌──────────────────┐
+    │ Payouts Service  │──payout-status-updates─────→│ Tax-Compliance   │
+    └──────────────────┘                             │ Consumer         │
+                                                     └──────────────────┘
+                                                             │
+                                                             ▼
+                                                 Updates tds_payment status
+</div>
+
+  <h3>3.3 Payout Type Considerations</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Payout Type</th>
+        <th>Impact</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Single Payout (UI)</strong></td>
+        <td>One orchestrated call via Tax-Compliance</td>
+      </tr>
+      <tr>
+        <td><strong>Bulk Payout (CSV)</strong></td>
+        <td>Would require new bulk orchestration API in Tax-Compliance; complex error handling</td>
+      </tr>
+      <tr>
+        <td><strong>API Payouts</strong></td>
+        <td>External users call Tax-Compliance instead of Payouts (API surface change)</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>3.4 Pros and Cons</h3>
+  <table>
+    <thead>
+      <tr><th>Pros</th><th>Cons</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="pro">Single API call returns both TDS Payment ID and Payout ID</td>
+        <td class="con">Reversed S2S call (Tax-Compliance → Payouts adds latency)</td>
+      </tr>
+      <tr>
+        <td class="pro">TDS Payment entity available synchronously</td>
+        <td class="con">Tax-Compliance depends on Payouts (tight coupling)</td>
+      </tr>
+      <tr>
+        <td class="pro">Tax-Compliance owns all TDS data</td>
+        <td class="con">Domain leakage - Tax-Compliance must understand payout creation</td>
+      </tr>
+      <tr>
+        <td class="pro">No new Kafka topic needed</td>
+        <td class="con">Complex orchestration logic in Tax-Compliance</td>
+      </tr>
+      <tr>
+        <td class="pro">Minimal Payouts changes</td>
+        <td class="con">Bulk payout support requires significant Tax-Compliance work</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="warning">
+    <h4>When to Consider</h4>
+    <p>
+      This approach is viable if having the TDS Payment ID synchronously in the API response
+      is a hard requirement. However, it introduces orchestration complexity and reverses
+      the natural dependency direction (Tax-Compliance calling Payouts).
+    </p>
+  </div>
+
+  <hr>
+
+  <h2 id="approach-3">4. Approach 3: Pre-Compute Pattern (RECOMMENDED)</h2>
+
+  <div class="approach-header">
+    <span class="approach-badge badge-recommended">RECOMMENDED - All Channels</span>
+    <span class="muted">BFF/Dashboard pre-computes TDS; Payouts receives pre-computed values; minimal changes</span>
+  </div>
+
+  <div class="recommendation">
+    <h3>Core Principle: Keep Payouts Dumb About TDS Computation</h3>
+    <p>
+      Payouts should <strong>NOT</strong> call Tax-Compliance during payout creation.
+      Instead, the caller (Dashboard/BFF/API client) pre-computes TDS values by calling
+      Tax-Compliance first, then passes the pre-computed values to Payouts.
+      Payouts simply stores these values and routes to the correct Kafka topic.
+    </p>
+  </div>
+
+  <h3>4.1 How It Works</h3>
+  <p>
+    This approach separates TDS computation from payout creation, following the same pattern
+    already used by Vendor-Payments.
+  </p>
+
+  <div class="info">
+    <h4>Flow Summary</h4>
+    <ol>
+      <li><strong>Compute TDS (Before Payout):</strong> Caller (Dashboard/BFF/API) calls Tax-Compliance compute API</li>
+      <li><strong>Display Preview:</strong> Show merchant the TDS breakdown (gross, TDS, net)</li>
+      <li><strong>Create Payout:</strong> Caller sends pre-computed values to Payouts API
+        <ul>
+          <li><code>amount</code>: NET amount (e.g., 900000)</li>
+          <li><code>tds.amount</code>: TDS amount (e.g., 100000)</li>
+          <li><code>tds.gross_amount</code>: Gross amount (e.g., 1000000)</li>
+          <li><code>tds.source</code>: "bb_plus" (routing indicator)</li>
+          <li><code>tds.breakdown</code>: Full TDS calculation details</li>
+        </ul>
+      </li>
+      <li><strong>Payouts Storage:</strong> Payouts stores payout (net amount) + all TDS fields in payout_details</li>
+      <li><strong>Kafka Routing:</strong> When payout reaches terminal state, Payouts checks <code>source</code> field:
+        <ul>
+          <li>If "bb_plus" → publish to <code>add-tds-entry-bb-plus</code> (Tax-Compliance consumer)</li>
+          <li>Otherwise → publish to <code>add-tds-entry</code> (Vendor-Payments consumer - existing)</li>
+        </ul>
+      </li>
+      <li><strong>Async TDS Entity:</strong> Tax-Compliance consumer creates TDS Payment entity from Kafka message</li>
+    </ol>
+  </div>
+
+  <h3>4.2 Flow Diagram (High-Level)</h3>
+
+<div class="flow-diagram">
+APPROACH 3: PRE-COMPUTE PATTERN (RECOMMENDED) ✓
+═══════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ PHASE 1: COMPUTE TDS (Before Payout Creation - ✅ NO S2S!)             │
+└─────────────────────────────────────────────────────────────────────────┘
+
+    ┌─────────────┐                          ┌──────────────────┐
+    │ Dashboard/  │───POST /v1/tds/compute──→│ Tax-Compliance   │
+    │ BFF         │                          └──────────────────┘
+    └─────────────┘   Request:                        │
+                      - merchant_id                   │
+                      - contact_id                    │
+                      - category: "194J"              │
+                      - vendor_payment_amount:        │
+                        1000000 (GROSS)               │
+                                                      ▼
+                                          Response:
+                                      ┌────────────────────────────┐
+                                      │ tds_amount: 100000         │
+                                      │ net_amount: 900000         │
+                                      │ breakdown: {               │
+                                      │   basic_tax, cess,         │
+                                      │   effective_rate           │
+                                      │ }                          │
+                                      └────────────────────────────┘
+                                                      │
+                                                      ▼
+                                         Display Preview on UI:
+                                    ┌────────────────────────────┐
+                                    │ Gross:  ₹10,000            │
+                                    │ TDS:    ₹1,000  (10%)      │
+                                    │ Net:    ₹9,000             │
+                                    └────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ PHASE 2: CREATE PAYOUT (✅ Pre-Computed Values - NO S2S!)              │
+└─────────────────────────────────────────────────────────────────────────┘
+
+    ┌─────────────┐                          ┌──────────────────────────────┐
+    │ Dashboard/  │───POST /v2/payouts──────→│ Payouts Service              │
+    │ BFF         │                          │                              │
+    └─────────────┘   Request:               │ ✅ NO S2S CALL              │
+                      - amount: 900000        │ ✅ NO AMOUNT MUTATION       │
+                        (NET - pre-computed!) │ ✅ JUST STORE VALUES        │
+                      - tds: {                │                              │
+                          category_id: 14     └──────────────────────────────┘
+                          amount: 100000                   │
+                          source: "bb_plus"                │
+                          gross_amount: 1000000            │
+                          breakdown: {...}                 │
+                        }                                  │
+                                                           ▼
+                                              ┌─────────────────────────────┐
+                                              │ Create payout record        │
+                                              │ - amount: 900000 (NET)      │
+                                              │                             │
+                                              │ Store TDS in payout_details:│
+                                              │ - tds_amount: 100000        │
+                                              │ - gross_amount: 1000000     │
+                                              │ - source: "bb_plus"         │
+                                              └─────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ PHASE 3: KAFKA ROUTING & TDS PAYMENT CREATION                           │
+└─────────────────────────────────────────────────────────────────────────┘
+
+    Payout reaches terminal state (processed/reversed/failed)
+           │
+           ▼
+    ┌──────────────────┐
+    │ Payouts Service  │
+    │ Check source:    │
+    └──────────────────┘
+           │
+           ├─── if source == "bb_plus" ───────┐
+           │                                   │
+           │                                   ▼
+           │                    Kafka Topic: add-tds-entry-bb-plus
+           │                                   │
+           │                                   ▼
+           │                        ┌──────────────────────────┐
+           │                        │ Tax-Compliance Consumer  │
+           │                        │ Creates tds_payment      │
+           │                        └──────────────────────────┘
+           │
+           └─── else (source != "bb_plus") ───┐
+                                               │
+                                               ▼
+                                Kafka Topic: add-tds-entry
+                                               │
+                                               ▼
+                                    ┌──────────────────────────┐
+                                    │ Vendor-Payments Consumer │
+                                    │ (Existing Flow)          │
+                                    └──────────────────────────┘
+</div>
+
+  <h3>4.3 Key Differences from Approach 1</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Aspect</th>
+        <th>Approach 1 (Inline)</th>
+        <th>Approach 3 (Pre-Compute)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>TDS Computation</strong></td>
+        <td class="con">Payouts calls Tax-Compliance (S2S)</td>
+        <td class="pro">Caller pre-computes before payout creation</td>
+      </tr>
+      <tr>
+        <td><strong>S2S Call in Payout API</strong></td>
+        <td class="con">Yes - blocking (+50-200ms)</td>
+        <td class="pro">No - zero latency added</td>
+      </tr>
+      <tr>
+        <td><strong>Amount Handling</strong></td>
+        <td class="con">Mutates params.Amount (gross→net)</td>
+        <td class="pro">Caller sends NET amount directly</td>
+      </tr>
+      <tr>
+        <td><strong>Failure Coupling</strong></td>
+        <td class="con">Payouts fails if Tax-Compliance down</td>
+        <td class="pro">Compute separate from payout creation</td>
+      </tr>
+      <tr>
+        <td><strong>Payouts Code Changes</strong></td>
+        <td class="con">High (client, compute logic)</td>
+        <td class="pro">Low (add fields + topic routing)</td>
+      </tr>
+      <tr>
+        <td><strong>Domain Separation</strong></td>
+        <td class="con">Leaks to Payouts</td>
+        <td class="pro">Clean - Tax-Compliance owns compute</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>4.4 Payout Type Support</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Payout Type</th>
+        <th>Implementation</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Single Payout (UI)</strong></td>
+        <td>
+          <ol>
+            <li>Dashboard calls Tax-Compliance compute API when merchant enters TDS details</li>
+            <li>Display preview (gross, TDS, net)</li>
+            <li>On confirm, Dashboard calls Payouts API with pre-computed values</li>
+          </ol>
+        </td>
+      </tr>
+      <tr>
+        <td><strong>Bulk Payout (CSV)</strong></td>
+        <td>
+          <ol>
+            <li>CSV includes gross_amount and tds_category columns</li>
+            <li>Bulk service calls Tax-Compliance compute for each row during parsing</li>
+            <li>Generate preview file with TDS breakdown for all rows</li>
+            <li>User reviews and confirms</li>
+            <li>Bulk service calls Payouts API for each row with pre-computed values</li>
+          </ol>
+        </td>
+      </tr>
+      <tr>
+        <td><strong>API Payouts</strong></td>
+        <td>
+          <ol>
+            <li>API client calls Tax-Compliance compute API</li>
+            <li>API client calls Payouts API with pre-computed values</li>
+            <li>Same pattern as UI - two-step process</li>
+          </ol>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>4.5 Changes Required (High-Level)</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Service</th>
+        <th>Changes</th>
+        <th>Effort</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Payouts</strong></td>
+        <td>
+          <ul>
+            <li>Add optional fields to TDSDetails struct: <code>source</code>, <code>gross_amount</code>, <code>breakdown</code></li>
+            <li>Add topic routing logic in <code>ProcessTdsForPayout()</code> based on source field</li>
+            <li>Store BB+ fields in payout_details JSON</li>
+          </ul>
+        </td>
+        <td style="color:#16a34a;"><strong>Low</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Tax-Compliance</strong></td>
+        <td>
+          <ul>
+            <li>Build/enhance compute API endpoint</li>
+            <li>Build Kafka consumer for <code>add-tds-entry-bb-plus</code> topic</li>
+            <li>Create TDS Payment entities from Kafka messages</li>
+          </ul>
+        </td>
+        <td>Medium</td>
+      </tr>
+      <tr>
+        <td><strong>Dashboard/BFF</strong></td>
+        <td>
+          <ul>
+            <li>Call Tax-Compliance compute API before payout creation</li>
+            <li>Display TDS breakdown in preview</li>
+            <li>Pass pre-computed values to Payouts API</li>
+          </ul>
+        </td>
+        <td>Medium</td>
+      </tr>
+      <tr>
+        <td><strong>Bulk Service</strong></td>
+        <td>
+          <ul>
+            <li>Add TDS columns to CSV template</li>
+            <li>Call compute API per row during parsing</li>
+            <li>Generate preview file with TDS breakdown</li>
+          </ul>
+        </td>
+        <td>Medium</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>4.6 Pros and Cons</h3>
+  <table>
+    <thead>
+      <tr><th>Pros</th><th>Cons</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="pro">Zero latency added to payout API (no S2S call)</td>
+        <td class="con">Two separate API calls (compute, then create payout)</td>
+      </tr>
+      <tr>
+        <td class="pro">Payouts decoupled from Tax-Compliance availability</td>
+        <td class="con">LDC certificate could expire between compute and payout</td>
+      </tr>
+      <tr>
+        <td class="pro">Minimal Payouts changes (just fields + routing)</td>
+        <td class="con">Caller must orchestrate two-step flow</td>
+      </tr>
+      <tr>
+        <td class="pro">No amount mutation - caller sends NET directly</td>
+        <td></td>
+      </tr>
+      <tr>
+        <td class="pro">Clean domain separation</td>
+        <td></td>
+      </tr>
+      <tr>
+        <td class="pro">Backward compatible - all new fields optional</td>
+        <td></td>
+      </tr>
+      <tr>
+        <td class="pro">Easy testing - no Tax-Compliance mock needed</td>
+        <td></td>
+      </tr>
+      <tr>
+        <td class="pro">Same pattern as existing Vendor-Payments flow</td>
+        <td></td>
+      </tr>
+      <tr>
+        <td class="pro">Works seamlessly for all payout types (single, bulk, API)</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <hr>
+
+  <h2 id="comparison">5. Comparison of Approaches</h2>
+
+  <h3>5.1 All Three Approaches</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Criteria</th>
+        <th>Approach 1: Inline</th>
+        <th>Approach 2: Orchestrated</th>
+        <th style="background:#c6f6d5;">Approach 3: Pre-Compute ✓</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>S2S call in payout creation</strong></td>
+        <td class="con">Yes (Payouts→Tax)</td>
+        <td class="con">Yes (Tax→Payouts)</td>
+        <td class="pro" style="background:#f0fff4;"><strong>No</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Latency added to payout API</strong></td>
+        <td class="con">+50-200ms</td>
+        <td class="con">+50-200ms</td>
+        <td class="pro" style="background:#f0fff4;"><strong>0ms</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Service coupling</strong></td>
+        <td class="con">Tight</td>
+        <td class="con">Tight (reversed)</td>
+        <td class="pro" style="background:#f0fff4;"><strong>Loose</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Amount mutation</strong></td>
+        <td class="con">Yes (risky)</td>
+        <td class="pro">No</td>
+        <td class="pro" style="background:#f0fff4;"><strong>No</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Payouts code changes</strong></td>
+        <td class="con">High</td>
+        <td class="pro">Minimal</td>
+        <td class="pro" style="background:#f0fff4;"><strong>Low</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Domain separation</strong></td>
+        <td class="con">Leaks to Payouts</td>
+        <td class="con">Leaks to Tax</td>
+        <td class="pro" style="background:#f0fff4;"><strong>Clean</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Testing complexity</strong></td>
+        <td class="con">High</td>
+        <td class="con">High</td>
+        <td class="pro" style="background:#f0fff4;"><strong>Low</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Bulk payouts support</strong></td>
+        <td class="con">Complex</td>
+        <td class="con">Very complex</td>
+        <td class="pro" style="background:#f0fff4;"><strong>Simple</strong></td>
+      </tr>
+      <tr>
+        <td><strong>API version change</strong></td>
+        <td class="con">Maybe</td>
+        <td class="pro">No</td>
+        <td class="pro" style="background:#f0fff4;"><strong>No</strong></td>
+      </tr>
+      <tr>
+        <td><strong>TDS Payment ID in response</strong></td>
+        <td class="con">No (async)</td>
+        <td class="pro">Yes (sync)</td>
+        <td class="con">No (async)</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <hr>
+
+  <h2 id="recommendation">6. Final Recommendation</h2>
+
+  <div class="recommendation">
+    <h3>RECOMMENDED: Approach 3 — Pre-Compute Pattern</h3>
+    <p><strong>Approach 3 is the recommended solution for all payout types (Single, Bulk, API).</strong></p>
+
+    <h4>Key Reasons:</h4>
+    <ul>
+      <li><strong>Zero latency overhead:</strong> No S2S call in payout creation critical path</li>
+      <li><strong>Failure isolation:</strong> Payouts doesn't fail if Tax-Compliance is down</li>
+      <li><strong>Minimal Payouts changes:</strong> Only add fields + topic routing (low risk, low effort)</li>
+      <li><strong>Clean domain separation:</strong> Tax-Compliance owns computation; Payouts owns payout processing</li>
+      <li><strong>No amount mutation:</strong> Caller sends NET amount directly (less error-prone)</li>
+      <li><strong>Easy testing:</strong> No need to mock Tax-Compliance in Payouts tests</li>
+      <li><strong>Proven pattern:</strong> Same approach used by existing Vendor-Payments flow</li>
+      <li><strong>Backward compatible:</strong> All new fields are optional; no API version change needed</li>
+      <li><strong>Scales to all channels:</strong> Works uniformly for UI, Bulk CSV, and API integrations</li>
+    </ul>
+  </div>
+
+  <h3>6.1 Trade-offs Accepted</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Trade-off</th>
+        <th>Mitigation</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Two API calls required (compute, then create)</td>
+        <td>BFF/Dashboard handles orchestration; merchants see single flow in UI</td>
+      </tr>
+      <tr>
+        <td>TDS Payment ID not available in payout API response</td>
+        <td>Tax-Compliance creates entity asynchronously; ID available via query API if needed</td>
+      </tr>
+      <tr>
+        <td>LDC certificate could expire between compute and payout</td>
+        <td>Unlikely in practice (seconds between calls); can add staleness check if needed</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>6.2 Implementation Priority</h3>
+  <ol>
+    <li><strong>Phase 1:</strong> Payouts service changes (fields + topic routing) - <em>Low risk, high value</em></li>
+    <li><strong>Phase 2:</strong> Tax-Compliance compute API + Kafka consumer - <em>Independent of Payouts</em></li>
+    <li><strong>Phase 3:</strong> Dashboard UI integration (single payout) - <em>First user-facing feature</em></li>
+    <li><strong>Phase 4:</strong> Bulk payout CSV integration - <em>Reuses all prior work</em></li>
+    <li><strong>Phase 5:</strong> API documentation for external integrations - <em>Completes all channels</em></li>
+  </ol>
+
+  <hr>
+
+  <h2 id="nfrs">7. Non-Functional Requirements (Summary)</h2>
+
+  <h3>7.1 Performance</h3>
+  <table>
+    <thead>
+      <tr><th>Metric</th><th>Target</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Tax-Compliance compute API latency</td>
+        <td>&lt; 200ms (p95)</td>
+      </tr>
+      <tr>
+        <td>Payout creation latency (no change)</td>
+        <td>&lt; 500ms (p95)</td>
+      </tr>
+      <tr>
+        <td>Kafka publish to TDS Payment creation</td>
+        <td>&lt; 5 seconds</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>7.2 Throughput</h3>
+  <ul>
+    <li><strong>Single Payouts:</strong> Support existing payout throughput (no degradation)</li>
+    <li><strong>Bulk Payouts:</strong> Support up to 10,000 rows per CSV file</li>
+    <li><strong>Compute API:</strong> Handle peak load during bulk processing</li>
+  </ul>
+
+  <h3>7.3 Availability</h3>
+  <ul>
+    <li><strong>Tax-Compliance compute API:</strong> 99.9% uptime</li>
+    <li><strong>Kafka consumer:</strong> Automatic retry with DLQ for failed messages</li>
+    <li><strong>Graceful degradation:</strong> If compute API down, preview fails but old payouts (without TDS) continue to work</li>
+  </ul>
+
+  <h3>7.4 Data Retention</h3>
+  <ul>
+    <li><strong>Payout details (TDS fields):</strong> Retained per existing payout retention policy (7+ years for compliance)</li>
+    <li><strong>TDS Payment entities:</strong> Retained indefinitely for tax filing and audit</li>
+    <li><strong>Kafka messages:</strong> 7 days retention minimum</li>
+  </ul>
+
+  <hr>
+
+  <h2 id="security">8. Security & Observability (Summary)</h2>
+
+  <h3>8.1 Security</h3>
+  <table>
+    <thead>
+      <tr><th>Aspect</th><th>Implementation</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>PII Handling</strong></td>
+        <td>
+          <ul>
+            <li>Deductee PAN encrypted at rest in Tax-Compliance</li>
+            <li>No PAN in Payouts service (only contact_id reference)</li>
+            <li>No PII in logs or Kafka messages</li>
+          </ul>
+        </td>
+      </tr>
+      <tr>
+        <td><strong>Access Control</strong></td>
+        <td>
+          <ul>
+            <li>Tax-Compliance compute API: Authenticated merchants only</li>
+            <li>Payouts API: Existing authentication (no change)</li>
+            <li>TDS Payment query API: Merchant can only access their own records</li>
+          </ul>
+        </td>
+      </tr>
+      <tr>
+        <td><strong>Kafka Security</strong></td>
+        <td>
+          <ul>
+            <li>Use existing Kafka authentication and authorization</li>
+            <li>Topic ACLs to restrict publisher/consumer access</li>
+          </ul>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>8.2 Observability</h3>
+  <table>
+    <thead>
+      <tr><th>Component</th><th>Metrics & Monitoring</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Tax-Compliance Compute API</strong></td>
+        <td>
+          <ul>
+            <li>Request count, latency (p50, p95, p99)</li>
+            <li>Error rate by error type</li>
+            <li>LDC application rate</li>
+          </ul>
+        </td>
+      </tr>
+      <tr>
+        <td><strong>Payouts API</strong></td>
+        <td>
+          <ul>
+            <li>TDS payout count (source = bb_plus)</li>
+            <li>Kafka publish success/failure rate</li>
+          </ul>
+        </td>
+      </tr>
+      <tr>
+        <td><strong>Kafka Consumer</strong></td>
+        <td>
+          <ul>
+            <li>Consumer lag</li>
+            <li>Message processing rate</li>
+            <li>DLQ message count</li>
+            <li>TDS Payment creation success/failure rate</li>
+          </ul>
+        </td>
+      </tr>
+      <tr>
+        <td><strong>Alerting</strong></td>
+        <td>
+          <ul>
+            <li>Compute API error rate &gt; 5%</li>
+            <li>Kafka consumer lag &gt; 1000 messages</li>
+            <li>DLQ messages present</li>
+            <li>Payout-to-TDS-Payment reconciliation gaps</li>
+          </ul>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>8.3 Error Handling</h3>
+  <ul>
+    <li><strong>Compute API errors:</strong> Return clear error messages (e.g., invalid category, PAN not found, LDC expired)</li>
+    <li><strong>Payout creation errors:</strong> Same as existing payout errors (no change)</li>
+    <li><strong>Kafka publish failures:</strong> Use outbox pattern for at-least-once delivery</li>
+    <li><strong>Kafka consumer failures:</strong> Retry with exponential backoff; send to DLQ after max retries</li>
+    <li><strong>Reconciliation:</strong> Daily job to detect payouts with TDS but no TDS Payment entity (alert ops team)</li>
+  </ul>
+
+  <hr>
+
+  <div class="info">
+    <h4>Document Purpose</h4>
+    <p>
+      This summary document provides a high-level overview of the TDS integration problem and solution approaches.
+      For detailed implementation specifications, API contracts, struct definitions, SQL schemas, test plans,
+      and code examples, please refer to the full technical specification document.
+    </p>
+  </div>
+
+</body>
+</html>
