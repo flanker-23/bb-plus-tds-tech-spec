@@ -227,7 +227,33 @@
     <li>TDS amount is tracked for monthly filing and payment to the government</li>
   </ul>
 
-  <h3>1.2 The Problem</h3>
+  <h3>1.2 Product Requirement</h3>
+
+  <div class="recommendation">
+    <h4>Seamless Merchant Experience</h4>
+    <p>
+      The product requirement is to provide a <strong>seamless experience for merchants using the Payouts API</strong>, where they can pass minimal details similar to what is currently passed to the compute API.
+    </p>
+    <p><strong>Key Requirements:</strong></p>
+    <ul>
+      <li><strong>Minimal Input:</strong> Merchants should provide basic payout details (gross amount, TDS category, contact, etc.) without needing to pre-calculate TDS values themselves</li>
+      <li><strong>Automatic Calculation:</strong> The system should automatically compute TDS amounts based on the provided inputs</li>
+      <li><strong>Persistence:</strong> All TDS-related data should be persisted correctly for compliance and reporting</li>
+      <li><strong>Unified Flow:</strong> The payout should be created seamlessly after TDS calculation</li>
+      <li><strong>Universal Applicability:</strong> This single approach should work consistently across <strong>all three payout types</strong>:
+        <ul>
+          <li><strong>Single Payout</strong> (UI-based merchant-initiated payouts)</li>
+          <li><strong>Bulk Payout</strong> (CSV file upload with multiple payout records)</li>
+          <li><strong>API Payout</strong> (Programmatic payout creation via API integration)</li>
+        </ul>
+      </li>
+    </ul>
+    <p>
+      This requirement drives the architectural decision to ensure merchants have a consistent, simple interface regardless of how they create payouts, while the system handles all complexity of TDS computation and compliance internally.
+    </p>
+  </div>
+
+  <h3>1.3 The Problem</h3>
   <div class="warning">
     <h4>Current State</h4>
     <p>
@@ -242,7 +268,7 @@
     </ul>
   </div>
 
-  <h3>1.3 Services Involved</h3>
+  <h3>1.4 Services Involved</h3>
   <table>
     <thead>
       <tr>
