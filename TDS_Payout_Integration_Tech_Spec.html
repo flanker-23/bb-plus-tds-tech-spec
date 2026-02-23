@@ -825,320 +825,119 @@ Example: category 194J, rate 10%
 
   <h3>2.1 Flow Diagram</h3>
 
-  <div class="flow-container">
-    <div class="flow-title">Approach 1: Extend TDS Field (Post-Payout Processing)</div>
+  
+<div class="flow-diagram" style="background: #1a202c; color: #e2e8f0; padding: 20px; border-radius: 8px; font-family: 'Consolas', 'Monaco', monospace; font-size: 12px; line-height: 1.4; overflow-x: auto; white-space: pre;">
+┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+│           APPROACH 1: INLINE COMPUTE (Post-Payout Processing) - NOT RECOMMENDED            │
+├─────────────────────────────────────────────────────────────────────────────────────────────┤
+│  Legend: [UI/FE]  [Tax-Compliance]  [Payouts]  [Kafka]  [Database]                          │
+└─────────────────────────────────────────────────────────────────────────────────────────────┘
 
-    <!-- Legend -->
-    <div class="flow-legend">
-      <div class="flow-legend-item">
-        <div class="flow-legend-color" style="background: #f3e8ff; border: 2px solid #9333ea;"></div>
-        <span>UI/FE</span>
-      </div>
-      <div class="flow-legend-item">
-        <div class="flow-legend-color" style="background: #dbeafe; border: 2px solid #2563eb;"></div>
-        <span>Tax-Compliance</span>
-      </div>
-      <div class="flow-legend-item">
-        <div class="flow-legend-color" style="background: #dcfce7; border: 2px solid #16a34a;"></div>
-        <span>Payouts</span>
-      </div>
-      <div class="flow-legend-item">
-        <div class="flow-legend-color" style="background: #ffedd5; border: 2px solid #ea580c;"></div>
-        <span>Kafka</span>
-      </div>
-    </div>
+═══════════════════════════════════════════════════════════════════════════════════════════════
+ PHASE 1: COMPUTE TDS PREVIEW (UI calls Tax-Compliance for display only)
+═══════════════════════════════════════════════════════════════════════════════════════════════
 
-    <!-- Phase 1: Compute TDS -->
-    <div class="flow-section">
-      <div class="flow-section-title">Phase 1: Compute TDS Preview</div>
+ ① Merchant Enters Details              ② Compute TDS Response
 
-      <div class="flow-step">
-        <div class="flow-step-number">1</div>
-        <div class="flow-step-title">Merchant Enters Details</div>
-      </div>
+ ┌────────────────────┐                  ┌────────────────────┐
+ │      UI / FE       │                  │   Tax-Compliance   │
+ │                    │  POST            │                    │
+ │  vendor_amount:    │  /v1/tds/compute │  total_tds: 50000  │
+ │    500000          │ ───────────────▶ │  rate: 1000 (10%)  │
+ │  category: "194J"  │                  │  basic_tax: 40000  │
+ │  contact_id: xxx   │ ◀─────────────── │  surcharge: 5000   │
+ │  is_ldc: false     │                  │  cess: 2500        │
+ └────────────────────┘                  └────────────────────┘
+          │
+          ▼
+ ┌────────────────────┐
+ │   Display Preview  │
+ │   ───────────────  │
+ │   Gross:  ₹5,000   │
+ │   TDS:    ₹500     │
+ │   Net:    ₹4,500   │
+ └────────────────────┘
 
-      <div class="flow-row">
-        <div class="flow-box frontend">
-          <div class="flow-box-label">UI/FE</div>
-          <div class="flow-box-name">Merchant UI</div>
-          <div class="flow-box-fields">
-            vendor_payment_amount: 500000<br>
-            category: "194J"<br>
-            deduction_date: 1231432<br>
-            contact_id: "aksjdhask"<br>
-            contact_pan: "ABCDE1234F"<br>
-            is_ldc_applicable: false
-          </div>
-        </div>
-        <div class="flow-arrow">→</div>
-        <div class="flow-box tax-compliance">
-          <div class="flow-box-label">POST /v1/tds/compute</div>
-          <div class="flow-box-name">Tax-Compliance</div>
-          <div class="flow-box-fields">
-            <strong>Request:</strong><br>
-            deduction_date: 1231432<br>
-            category: "194J"<br>
-            vendor_payment_amount: 500000<br>
-            source: "BB+"<br>
-            is_ldc_applicable: false<br>
-            contact_id: "aksjdhask"<br>
-            merchant_id: "ajsdakd"
-          </div>
-        </div>
-      </div>
+═══════════════════════════════════════════════════════════════════════════════════════════════
+ PHASE 2: CREATE PAYOUT (Payouts calls Tax-Compliance internally - S2S Call!)
+═══════════════════════════════════════════════════════════════════════════════════════════════
 
-      <div class="flow-step">
-        <div class="flow-step-number">2</div>
-        <div class="flow-step-title">Compute TDS Response</div>
-      </div>
+ ③ Merchant Confirms                    ③a Payouts Calls Compute (S2S)
 
-      <div class="flow-row">
-        <div class="flow-box tax-compliance">
-          <div class="flow-box-label">Response</div>
-          <div class="flow-box-name">ComputeNonSalaryTdsData</div>
-          <div class="flow-box-fields">
-            category: "194J"<br>
-            vendor_payment_amount: 500000<br>
-            rate_tds_deducted: 1000 (10%)<br>
-            total_tds_amount: 50000<br>
-            basic_tax_amount: 40000<br>
-            surcharge: 5000<br>
-            cess: 2500<br>
-            interest: 1500<br>
-            penalty: 1000<br>
-            is_ldc_valid: false
-          </div>
-        </div>
-        <div class="flow-arrow">→</div>
-        <div class="flow-box frontend">
-          <div class="flow-box-label">Display Preview</div>
-          <div class="flow-box-name">Merchant UI</div>
-          <div class="flow-box-fields">
-            Gross: ₹5,000<br>
-            TDS: ₹500 (10%)<br>
-            Net Payout: ₹4,500
-          </div>
-        </div>
-      </div>
-    </div>
+ ┌────────────────────┐                  ┌────────────────────┐
+ │      UI / FE       │  POST /v1/payouts│      Payouts       │
+ │                    │ ───────────────▶ │                    │
+ │  amount: 500000    │                  │  ⚠️ S2S CALL HERE │──┐
+ │    (GROSS!)        │                  │  (+50-200ms!)      │  │
+ │  tds: {            │                  │                    │  │
+ │    category:"194J" │                  │                    │  │
+ │    source: "BB+"   │                  └────────────────────┘  │
+ │  }                 │                                          │
+ └────────────────────┘                                          │
+                                                                 │ POST /v1/tds/compute
+                                         ┌────────────────────┐  │
+                                         │   Tax-Compliance   │◀─┘
+                                         │                    │
+                                         │  Returns TDS data  │───┐
+                                         └────────────────────┘   │
+                                                                  │
+ ┌────────────────────┐                  ┌────────────────────┐   │
+ │      Payouts       │                  │      Payouts       │◀──┘
+ │                    │                  │                    │
+ │  Mutates amount:   │                  │  Derives net:      │
+ │  500000 → 450000   │                  │  500000 - 50000    │
+ │    (RISKY!)        │                  │  = 450000          │
+ └────────────────────┘                  └────────────────────┘
 
+ ④ Entities Created in Database
 
-      <div class="flow-step">
-        <div class="flow-step-number">3</div>
-        <div class="flow-step-title">Merchant Confirms → Create Payout (same TDS inputs passed to API)</div>
-      </div>
+ ┌─────────────────────────────────────────────────────────────────────────────┐
+ │                              DATABASE                                        │
+ │  ┌─────────────────────────────┐    ┌─────────────────────────────────────┐ │
+ │  │     Table: payouts          │    │     Table: payout_details           │ │
+ │  │  ─────────────────────────  │    │  ─────────────────────────────────  │ │
+ │  │  id: "pout_xxx"             │    │  payout_id: "pout_xxx"              │ │
+ │  │  amount: 450000 (NET)       │    │  tds_input: {category, amount...}   │ │
+ │  │  status: "created"          │    │  tds_computed: {tds_amount: 50000}  │ │
+ │  └─────────────────────────────┘    └─────────────────────────────────────┘ │
+ └─────────────────────────────────────────────────────────────────────────────┘
 
-      <div class="info" style="margin: 8px 0 12px 0; font-size: 13px;">
-        <strong>Key Design:</strong> The <code>tds</code> field in the payout request carries the <strong>same inputs the compute API takes</strong> — not pre-computed values.
-        Payouts calls Tax-Compliance compute internally and derives the net payout amount itself.
-        <code>deduction_date</code> can be auto-generated in code at the time the call is made to Tax-Compliance.
-      </div>
+═══════════════════════════════════════════════════════════════════════════════════════════════
+ PHASE 3: ASYNC TDS PAYMENT CREATION
+═══════════════════════════════════════════════════════════════════════════════════════════════
 
-      <div class="flow-row">
-        <div class="flow-box frontend">
-          <div class="flow-box-label">POST /v1/payouts</div>
-          <div class="flow-box-name">UI/FE → Payouts</div>
-          <div class="flow-box-fields">
-            <strong>Request:</strong><br>
-            amount: 500000 <em>(gross)</em><br>
-            fund_account_id<br>
-            currency: "INR"<br>
-            mode: "NEFT"<br>
-            purpose: "vendor_bill"<br>
-            <strong>tds:</strong> {<br>
-            &nbsp;&nbsp;category: "194J"<br>
-            &nbsp;&nbsp;source: "BB+"<br>
-            &nbsp;&nbsp;is_ldc_applicable: false<br>
-            &nbsp;&nbsp;contact_id: "aksjdhask" <em>(opt; else from fund_account)</em><br>
-            }<br>
-            <em>merchant_id from auth; deduction_date auto-generated</em>
-          </div>
-        </div>
-        <div class="flow-arrow">→</div>
-        <div class="flow-box payouts">
-          <div class="flow-box-label">Backend Service</div>
-          <div class="flow-box-name">Payouts</div>
-          <div class="flow-box-fields">
-            <em>TDS inputs present → calls compute</em>
-          </div>
-        </div>
-      </div>
+ ⑤ Payout State Transitions
 
-      <div class="flow-step">
-        <div class="flow-step-number">3a</div>
-        <div class="flow-step-title">Payouts Calls Tax-Compliance Compute Internally</div>
-      </div>
+    [created] ───▶ [initiated] ───▶ [processing] ───▶ [processed]
 
-      <div class="flow-row">
-        <div class="flow-box payouts">
-          <div class="flow-box-label">Internal S2S Call</div>
-          <div class="flow-box-name">Payouts</div>
-          <div class="flow-box-fields">
-            Extracts &amp; forwards:<br>
-            deduction_date (auto)<br>
-            category, source, is_ldc_applicable (tds)<br>
-            vendor_payment_amount ← amount<br>
-            contact_id ← fund_account or tds<br>
-            merchant_id ← auth context
-          </div>
-        </div>
-        <div class="flow-arrow">→</div>
-        <div class="flow-box tax-compliance">
-          <div class="flow-box-label">POST /v1/tds/compute</div>
-          <div class="flow-box-name">Tax-Compliance</div>
-          <div class="flow-box-fields">
-            <strong>Returns:</strong><br>
-            total_tds_amount: 50000<br>
-            rate_tds_deducted: 1000 (10%)<br>
-            basic_tax_amount: 40000<br>
-            surcharge: 5000<br>
-            cess: 2500<br>
-            interest: 1500<br>
-            penalty: 1000<br>
-            is_ldc_valid: false
-          </div>
-        </div>
-        <div class="flow-arrow">→</div>
-        <div class="flow-box payouts">
-          <div class="flow-box-label">Derives net amount</div>
-          <div class="flow-box-name">Payouts</div>
-          <div class="flow-box-fields">
-            net = 500000 − 50000 = 450000
-          </div>
-        </div>
-      </div>
+ ⑥ On Processed: Publish to Kafka       ⑦ Create TDS Payment Entity
 
-      <div class="flow-step">
-        <div class="flow-step-number">4</div>
-        <div class="flow-step-title">Entities Created in Payouts DB (compute result stored)</div>
-      </div>
+ ┌────────────────────┐                  ┌────────────────────────────────────┐
+ │      Payouts       │                  │         Kafka Topic                │
+ │                    │  Publish         │    add-tds-entry-bb-plus           │
+ │  ProcessTds        │ ───────────────▶ │  ┌─────────────────────────────┐   │
+ │  ForPayout()       │                  │  │  entity_id: "pout_xxx"      │   │
+ │                    │                  │  │  entity_status: "processed" │   │
+ └────────────────────┘                  │  │  tds_amount: 50000          │   │
+                                         │  │  gross_amount: 500000       │   │
+                                         │  └─────────────────────────────┘   │
+                                         └────────────────┬───────────────────┘
+                                                          │
+                                                          ▼
+                                         ┌────────────────────────────────────┐
+                                         │        Tax-Compliance              │
+                                         │           Consumer                 │
+                                         │  ┌─────────────────────────────┐   │
+                                         │  │  Table: tds_payments        │   │
+                                         │  │  id: "tdsp_xxx"             │   │
+                                         │  │  source_transaction_id:     │   │
+                                         │  │    "pout_xxx"               │   │
+                                         │  │  total_tds_amount: 50000    │   │
+                                         │  │  status: "success"          │   │
+                                         │  └─────────────────────────────┘   │
+                                         └────────────────────────────────────┘
+</div>
 
-      <div class="flow-group">
-        <div class="flow-group-label">Entities Created</div>
-        <div class="flow-row">
-          <div class="flow-box database">
-            <div class="flow-box-label">Table: payouts</div>
-            <div class="flow-box-name">pout_xxx</div>
-            <div class="flow-box-fields">
-              id: "pout_xxx"<br>
-              amount: 450000 (net)<br>
-              status: "created"<br>
-              merchant_id<br>
-              fund_account_id
-            </div>
-          </div>
-          <div class="flow-box database">
-            <div class="flow-box-label">Table: payout_details</div>
-            <div class="flow-box-name">additional_info</div>
-            <div class="flow-box-fields">
-              payout_id: "pout_xxx"<br>
-              <strong>tds_input:</strong> {<br>
-              &nbsp;&nbsp;category: "194J"<br>
-              &nbsp;&nbsp;vendor_payment_amount: 500000<br>
-              &nbsp;&nbsp;source: "BB+"<br>
-              &nbsp;&nbsp;is_ldc_applicable: false<br>
-              &nbsp;&nbsp;contact_id: "aksjdhask"<br>
-              }<br>
-              <strong>tds_computed:</strong> {<br>
-              &nbsp;&nbsp;total_tds_amount: 50000<br>
-              &nbsp;&nbsp;rate_tds_deducted: 1000 (10%)<br>
-              &nbsp;&nbsp;category_code: "194J"<br>
-              &nbsp;&nbsp;basic_tax_amount: 40000<br>
-              &nbsp;&nbsp;surcharge: 5000<br>
-              &nbsp;&nbsp;cess: 2500<br>
-              &nbsp;&nbsp;interest: 1500<br>
-              &nbsp;&nbsp;penalty: 1000<br>
-              &nbsp;&nbsp;is_ldc_valid: false<br>
-              }
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="flow-section">
-      <div class="flow-section-title">Phase 3: Async TDS Payment Creation</div>
-
-      <div class="flow-step">
-        <div class="flow-step-number">5</div>
-        <div class="flow-step-title">Payout State Transitions</div>
-      </div>
-
-      <div class="state-flow">
-        <div class="state-box created">created</div>
-        <div class="flow-arrow">→</div>
-        <div class="state-box processing">initiated</div>
-        <div class="flow-arrow">→</div>
-        <div class="state-box processing">processing</div>
-        <div class="flow-arrow">→</div>
-        <div class="state-box success">processed</div>
-      </div>
-
-      <div class="flow-step">
-        <div class="flow-step-number">6</div>
-        <div class="flow-step-title">On Processed: Publish to Kafka</div>
-      </div>
-
-      <div class="flow-row">
-        <div class="flow-box payouts">
-          <div class="flow-box-label">Publisher</div>
-          <div class="flow-box-name">Payouts</div>
-        </div>
-        <div class="flow-arrow">→</div>
-        <div class="flow-box kafka">
-          <div class="flow-box-label">Topic: add-tds-entry-bb-plus</div>
-          <div class="flow-box-name">Kafka Message</div>
-          <div class="flow-box-fields">
-            entity_id: "pout_xxx"<br>
-            entity_type: "payout"<br>
-            entity_status: "processed"<br>
-            merchant_id<br>
-            payout_amount: 450000<br>
-            gross_amount: 500000<br>
-            tds_amount: 50000<br>
-            category_id: 14<br>
-            category_code: "194J"<br>
-            contact_pan: "ABCDE1234F"<br>
-            source: "bb_plus"
-          </div>
-        </div>
-        <div class="flow-arrow">→</div>
-        <div class="flow-box tax-compliance">
-          <div class="flow-box-label">Consumer</div>
-          <div class="flow-box-name">Tax-Compliance</div>
-        </div>
-      </div>
-
-      <div class="flow-step">
-        <div class="flow-step-number">7</div>
-        <div class="flow-step-title">Create TDS Payment Entity</div>
-      </div>
-
-      <div class="flow-group">
-        <div class="flow-group-label">Entity Created (Async via Kafka)</div>
-        <div class="flow-row">
-          <div class="flow-box database">
-            <div class="flow-box-label">Table: tds_payments</div>
-            <div class="flow-box-name">tdsp_xxx</div>
-            <div class="flow-box-fields">
-              id: "tdsp_xxx"<br>
-              merchant_id<br>
-              source_transaction_id: "pout_xxx"<br>
-              transaction_source: "BB_PLUS"<br>
-              base_amount: 500000<br>
-              total_tds_amount: 50000<br>
-              vendor_payment_amount: 450000<br>
-              category_id: 14<br>
-              category_code: "194J"<br>
-              contact_pan: "ABCDE1234F"<br>
-              status: "success"
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-  </div>
 
   <h3>2.2 Implementation Details</h3>
 
@@ -1197,321 +996,117 @@ Example: category 194J, rate 10%
 
   <h3>3.1 Flow Diagram</h3>
 
-  <div class="flow-container">
-    <div class="flow-title">Approach 2: Tax-Compliance Orchestrated</div>
+  
+<div class="flow-diagram" style="background: #1a202c; color: #e2e8f0; padding: 20px; border-radius: 8px; font-family: 'Consolas', 'Monaco', monospace; font-size: 12px; line-height: 1.4; overflow-x: auto; white-space: pre;">
+┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+│               APPROACH 2: TAX-COMPLIANCE ORCHESTRATED (Alternative)                         │
+├─────────────────────────────────────────────────────────────────────────────────────────────┤
+│  Legend: [UI/FE]  [Tax-Compliance ★ Orchestrator]  [Payouts]  [Kafka]  [Database]           │
+└─────────────────────────────────────────────────────────────────────────────────────────────┘
 
-    <!-- Legend -->
-    <div class="flow-legend">
-      <div class="flow-legend-item">
-        <div class="flow-legend-color" style="background: #f3e8ff; border: 2px solid #9333ea;"></div>
-        <span>UI/FE</span>
-      </div>
-      <div class="flow-legend-item">
-        <div class="flow-legend-color" style="background: #dbeafe; border: 2px solid #2563eb;"></div>
-        <span>Tax-Compliance (Orchestrator)</span>
-      </div>
-      <div class="flow-legend-item">
-        <div class="flow-legend-color" style="background: #dcfce7; border: 2px solid #16a34a;"></div>
-        <span>Payouts</span>
-      </div>
-      <div class="flow-legend-item">
-        <div class="flow-legend-color" style="background: #ffedd5; border: 2px solid #ea580c;"></div>
-        <span>Kafka</span>
-      </div>
-    </div>
+═══════════════════════════════════════════════════════════════════════════════════════════════
+ PHASE 1: COMPUTE TDS PREVIEW (Same as Approach 1)
+═══════════════════════════════════════════════════════════════════════════════════════════════
 
-    <!-- Phase 1: Compute TDS (same as Approach 1) -->
-    <div class="flow-section">
-      <div class="flow-section-title">Phase 1: Compute TDS Preview (Same as Approach 1)</div>
+ ① Merchant Enters Details → Compute TDS → Display Preview (see Approach 1 Section 2.1)
 
-      <div class="flow-step">
-        <div class="flow-step-number">1</div>
-        <div class="flow-step-title">Merchant Enters Details → Compute TDS → Display Preview</div>
-        <div class="flow-step-desc">Same flow as Approach 1 - see Section 2.1</div>
-      </div>
-    </div>
+═══════════════════════════════════════════════════════════════════════════════════════════════
+ PHASE 2: SINGLE API CALL (Tax-Compliance Orchestrates)
+═══════════════════════════════════════════════════════════════════════════════════════════════
 
-    <!-- Phase 2: Single API - Tax-Compliance Orchestrates -->
-    <div class="flow-section">
-      <div class="flow-section-title">Phase 2: Single API Call (Tax-Compliance Orchestrates)</div>
+ ② Merchant Confirms
 
-      <div class="flow-step">
-        <div class="flow-step-number">2</div>
-        <div class="flow-step-title">Merchant Confirms → UI/FE calls Tax-Compliance</div>
-      </div>
+ ┌────────────────────┐     POST /v1/tds/payout      ┌──────────────────────────────────────┐
+ │      UI / FE       │ ───────────────────────────▶ │       Tax-Compliance                 │
+ │                    │                              │       ★ ORCHESTRATOR                 │
+ │  tds: {            │                              │                                      │
+ │    base_amount:    │                              │ ┌──────────────────────────────────┐ │
+ │      500000        │                              │ │ INTERNAL ORCHESTRATION:          │ │
+ │    tds_amount:     │                              │ │                                  │ │
+ │      50000         │                              │ │ Step A: Create TDS Payment       │ │
+ │    category: "194J"│                              │ │  ┌────────────────────────────┐  │ │
+ │  }                 │                              │ │  │ tds_payments               │  │ │
+ │  payout: {         │                              │ │  │ id: "tdsp_xxx"             │  │ │
+ │    fund_account_id │                              │ │  │ status: "pending"          │  │ │
+ │    amount: 450000  │                              │ │  └────────────────────────────┘  │ │
+ │    mode: "NEFT"    │                              │ │            │                     │ │
+ │  }                 │                              │ │            ▼                     │ │
+ └────────────────────┘                              │ │ Step B: Call Payouts API         │ │
+                                                     │ │  POST /v1/payouts ───────────┐   │ │
+                                                     │ │  {tds_payment_id: "tdsp_xxx"}│   │ │
+                                                     │ │            │                 │   │ │
+                                                     │ │            ▼                 │   │ │
+                                                     │ │  ┌──────────────────────┐    │   │ │
+                                                     │ │  │      Payouts         │◀───┘   │ │
+                                                     │ │  │  Creates: pout_xxx   │        │ │
+                                                     │ │  └──────────────────────┘        │ │
+                                                     │ │            │                     │ │
+                                                     │ │            ▼                     │ │
+                                                     │ │ Step C: Link payout to TDS       │ │
+                                                     │ │  source_transaction_id =         │ │
+                                                     │ │    "pout_xxx"                    │ │
+                                                     │ └──────────────────────────────────┘ │
+                                                     └──────────────────────────────────────┘
+                                                                    │
+ ┌────────────────────┐                                             │
+ │      UI / FE       │ ◀───────────────────────────────────────────┘
+ │                    │     Response:
+ │  tds_payment_id:   │     {
+ │    "tdsp_xxx"      │       tds_payment: {id: "tdsp_xxx", status: "pending"}
+ │  payout_id:        │       payout: {id: "pout_xxx", status: "created"}
+ │    "pout_xxx"      │     }
+ └────────────────────┘
 
-      <div class="flow-row">
-        <div class="flow-box frontend">
-          <div class="flow-box-label">POST /v1/tds/payout</div>
-          <div class="flow-box-name">UI/FE → Tax-Compliance</div>
-          <div class="flow-box-fields">
-            <strong>tds:</strong> {<br>
-            &nbsp;&nbsp;base_amount: 500000<br>
-            &nbsp;&nbsp;tds_amount: 50000<br>
-            &nbsp;&nbsp;category_id: 14<br>
-            &nbsp;&nbsp;category_code: "194J"<br>
-            &nbsp;&nbsp;tds_rate: 1000<br>
-            &nbsp;&nbsp;contact_id<br>
-            &nbsp;&nbsp;contact_pan: "ABCDE1234F"<br>
-            &nbsp;&nbsp;ldc_applicable: false<br>
-            }<br>
-            <strong>payout:</strong> {<br>
-            &nbsp;&nbsp;fund_account_id<br>
-            &nbsp;&nbsp;amount: 450000<br>
-            &nbsp;&nbsp;currency: "INR"<br>
-            &nbsp;&nbsp;mode: "NEFT"<br>
-            &nbsp;&nbsp;purpose: "vendor_bill"<br>
-            }
-          </div>
-        </div>
-        <div class="flow-arrow">→</div>
-        <div class="flow-box tax-compliance" style="border: 3px solid #2b6cb0;">
-          <div class="flow-box-label">★ Orchestrator</div>
-          <div class="flow-box-name">Tax-Compliance</div>
-        </div>
-      </div>
+═══════════════════════════════════════════════════════════════════════════════════════════════
+ FAILURE HANDLING (No Orphans)
+═══════════════════════════════════════════════════════════════════════════════════════════════
 
-      <div class="flow-step">
-        <div class="flow-step-number">5</div>
-        <div class="flow-step-title">Create TDS Payout (Combined API)</div>
-        <div class="flow-step-api">POST /v1/tds/payout { tds: {...}, payout: {...} }</div>
-        <div class="flow-step-desc">All TDS + Payout details in single request</div>
-      </div>
+ If Payouts API Fails:
 
-      <!-- Internal Orchestration Box -->
-      <div class="flow-group" style="border-color: #2563eb; background: rgba(37, 99, 235, 0.05);">
-        <div class="flow-group-label" style="color: #2b6cb0;">Tax-Compliance Internal Orchestration</div>
+    [TDS Payment: pending] ───▶ Payouts fails ───▶ [TDS Payment: cancelled]
 
-        <div class="flow-step">
-          <div class="flow-step-number">3</div>
-          <div class="flow-step-title">Step A: Create TDS Payment Entity</div>
-        </div>
+    ✓ Synchronous cancellation - No orphaned TDS Payments
 
-        <div class="flow-row">
-          <div class="flow-box database">
-            <div class="flow-box-label">Table: tds_payments</div>
-            <div class="flow-box-name">tdsp_xxx</div>
-            <div class="flow-box-fields">
-              id: "tdsp_xxx"<br>
-              merchant_id<br>
-              source_transaction_id: NULL<br>
-              transaction_source: "BB_PLUS"<br>
-              base_amount: 500000<br>
-              total_tds_amount: 50000<br>
-              vendor_payment_amount: 450000<br>
-              category_id: 14<br>
-              category_code: "194J"<br>
-              contact_pan: "ABCDE1234F"<br>
-              <strong>status: "pending"</strong>
-            </div>
-          </div>
-        </div>
+═══════════════════════════════════════════════════════════════════════════════════════════════
+ PHASE 3: ASYNC STATUS SYNC (via Existing Kafka)
+═══════════════════════════════════════════════════════════════════════════════════════════════
 
-        <div class="flow-arrow-down">↓</div>
+ ⑧ Payout Processing (Async)
 
-        <div class="flow-step">
-          <div class="flow-step-number">4</div>
-          <div class="flow-step-title">Step B: Call Payouts Service</div>
-        </div>
+    [created] ───▶ [initiated] ───▶ [processing] ───▶ [processed]
 
-        <div class="flow-row">
-          <div class="flow-box tax-compliance">
-            <div class="flow-box-label">POST /v1/payouts</div>
-            <div class="flow-box-name">Tax-Compliance → Payouts</div>
-            <div class="flow-box-fields">
-              fund_account_id<br>
-              amount: 450000<br>
-              currency: "INR"<br>
-              mode: "NEFT"<br>
-              purpose: "vendor_bill"<br>
-              <strong>tds:</strong> {<br>
-              &nbsp;&nbsp;tds_payment_id: "tdsp_xxx"<br>
-              &nbsp;&nbsp;category_id: 14<br>
-              &nbsp;&nbsp;amount: 50000<br>
-              }
-            </div>
-          </div>
-          <div class="flow-arrow">→</div>
-          <div class="flow-box payouts">
-            <div class="flow-box-label">Response</div>
-            <div class="flow-box-name">Payouts</div>
-            <div class="flow-box-fields">
-              id: "pout_xxx"<br>
-              status: "created"<br>
-              amount: 450000
-            </div>
-          </div>
-        </div>
+ ⑨ Status Published to Existing Topic    ⑩ Update TDS Payment Status
 
-        <div class="flow-step">
-          <div class="flow-step-number">5</div>
-          <div class="flow-step-title">Step C: Payouts Creates Entities</div>
-        </div>
+ ┌────────────────────┐                  ┌────────────────────────────────────┐
+ │      Payouts       │                  │    Kafka: payout-status-updates   │
+ │                    │  Publish         │         (existing topic)          │
+ │                    │ ───────────────▶ │  ┌─────────────────────────────┐   │
+ │                    │                  │  │  entity_id: "pout_xxx"      │   │
+ │                    │                  │  │  status: "processed"        │   │
+ └────────────────────┘                  │  └─────────────────────────────┘   │
+                                         └────────────────┬───────────────────┘
+                                                          │
+                                                          ▼
+                                         ┌────────────────────────────────────┐
+                                         │        Tax-Compliance              │
+                                         │                                    │
+                                         │  Lookup by source_transaction_id   │
+                                         │  UPDATE tds_payments               │
+                                         │  SET status = 'success'            │
+                                         │  WHERE source_transaction_id =     │
+                                         │    'pout_xxx'                      │
+                                         └────────────────────────────────────┘
 
-        <div class="flow-row">
-          <div class="flow-box database">
-            <div class="flow-box-label">Table: payouts</div>
-            <div class="flow-box-name">pout_xxx</div>
-            <div class="flow-box-fields">
-              id: "pout_xxx"<br>
-              amount: 450000<br>
-              status: "created"<br>
-              merchant_id<br>
-              fund_account_id
-            </div>
-          </div>
-          <div class="flow-box database">
-            <div class="flow-box-label">Table: payout_details</div>
-            <div class="flow-box-name">additional_info</div>
-            <div class="flow-box-fields">
-              payout_id: "pout_xxx"<br>
-              tds_payment_id: "tdsp_xxx"<br>
-              category_id: 14<br>
-              tds_amount: 50000
-            </div>
-          </div>
-        </div>
+ STATUS MAPPING:
+ ┌──────────────────┬─────────────────────┐
+ │  Payout Status   │  TDS Payment Status │
+ ├──────────────────┼─────────────────────┤
+ │  processed       │  success            │
+ │  reversed        │  voided             │
+ │  failed/cancelled│  cancelled          │
+ └──────────────────┴─────────────────────┘
+</div>
 
-        <div class="flow-arrow-down">↓</div>
-
-        <div class="flow-step">
-          <div class="flow-step-number">6</div>
-          <div class="flow-step-title">Step D: Link Payout to TDS Payment</div>
-        </div>
-
-        <div class="flow-row">
-          <div class="flow-box database">
-            <div class="flow-box-label">UPDATE tds_payments</div>
-            <div class="flow-box-name">tdsp_xxx</div>
-            <div class="flow-box-fields">
-              source_transaction_id: "pout_xxx"<br>
-              (status still "pending")
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="flow-step">
-        <div class="flow-step-number">7</div>
-        <div class="flow-step-title">Return Combined Response to UI/FE</div>
-      </div>
-
-      <div class="flow-row">
-        <div class="flow-box tax-compliance">
-          <div class="flow-box-label">Response</div>
-          <div class="flow-box-name">Tax-Compliance → UI/FE</div>
-          <div class="flow-box-fields">
-            <strong>tds_payment:</strong> {<br>
-            &nbsp;&nbsp;id: "tdsp_xxx"<br>
-            &nbsp;&nbsp;status: "pending"<br>
-            }<br>
-            <strong>payout:</strong> {<br>
-            &nbsp;&nbsp;id: "pout_xxx"<br>
-            &nbsp;&nbsp;status: "created"<br>
-            &nbsp;&nbsp;amount: 450000<br>
-            }
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Failure Handling -->
-    <div class="flow-section">
-      <div class="flow-section-title">Failure Handling (No Orphans)</div>
-
-      <div class="flow-group" style="border-color: #f56565; background: rgba(245, 101, 101, 0.1);">
-        <div class="flow-group-label" style="color: #c53030;">If Payouts API Fails</div>
-
-        <div class="state-flow">
-          <div class="state-box pending">TDS Payment: pending</div>
-          <div class="flow-arrow">→</div>
-          <div style="color: #c53030; font-weight: 600;">Payouts fails</div>
-          <div class="flow-arrow">→</div>
-          <div class="state-box failed">TDS Payment: cancelled</div>
-        </div>
-
-        <div style="text-align: center; color: #718096; font-size: 13px; margin-top: 12px;">
-          ✓ Synchronous cancellation - No orphaned TDS Payments
-        </div>
-      </div>
-    </div>
-
-    <!-- Phase 3: Async Status Sync -->
-    <div class="flow-section">
-      <div class="flow-section-title">Phase 3: Async Status Sync (via Existing Kafka)</div>
-
-      <div class="flow-step">
-        <div class="flow-step-number">8</div>
-        <div class="flow-step-title">Payout Processing (Async)</div>
-      </div>
-
-      <div class="state-flow">
-        <div class="state-box created">created</div>
-        <div class="flow-arrow">→</div>
-        <div class="state-box processing">initiated</div>
-        <div class="flow-arrow">→</div>
-        <div class="state-box processing">processing</div>
-        <div class="flow-arrow">→</div>
-        <div class="state-box success">processed</div>
-      </div>
-
-      <div class="flow-step">
-        <div class="flow-step-number">9</div>
-        <div class="flow-step-title">Payout Status Published to Existing Kafka Topic</div>
-      </div>
-
-      <div class="flow-row">
-        <div class="flow-box payouts">
-          <div class="flow-box-label">Publisher</div>
-          <div class="flow-box-name">Payouts</div>
-        </div>
-        <div class="flow-arrow">→</div>
-        <div class="flow-box kafka">
-          <div class="flow-box-label">Topic: payout-status-updates</div>
-          <div class="flow-box-name">Existing Kafka Topic</div>
-          <div class="flow-box-fields">
-            entity_id: "pout_xxx"<br>
-            entity_type: "payout"<br>
-            status: "processed"<br>
-            merchant_id<br>
-            amount: 450000
-          </div>
-        </div>
-        <div class="flow-arrow">→</div>
-        <div class="flow-box tax-compliance">
-          <div class="flow-box-label">Consumer</div>
-          <div class="flow-box-name">Tax-Compliance</div>
-        </div>
-      </div>
-
-      <div class="flow-step">
-        <div class="flow-step-number">10</div>
-        <div class="flow-step-title">Update TDS Payment Status</div>
-      </div>
-
-      <div class="flow-row">
-        <div class="flow-box database">
-          <div class="flow-box-label">UPDATE tds_payments</div>
-          <div class="flow-box-name">tdsp_xxx</div>
-          <div class="flow-box-fields">
-            <em>Lookup by source_transaction_id</em><br>
-            status: "pending" → "success"
-          </div>
-        </div>
-      </div>
-
-      <div class="flow-group">
-        <div class="flow-group-label">Status Mapping</div>
-        <table style="width: auto; margin: 0;">
-          <tr><td><strong>Payout Status</strong></td><td><strong>→</strong></td><td><strong>TDS Payment Status</strong></td></tr>
-          <tr><td>processed</td><td>→</td><td style="color: #065f46;">success</td></tr>
-          <tr><td>reversed</td><td>→</td><td style="color: #92400e;">voided</td></tr>
-          <tr><td>failed / cancelled</td><td>→</td><td style="color: #991b1b;">cancelled</td></tr>
-        </table>
-      </div>
-    </div>
-
-  </div>
 
   <h3>3.2 Implementation Details</h3>
 
@@ -1558,11 +1153,19 @@ Example: category 194J, rate 10%
 
   <h4>3.2.2 Tax-Compliance: Internal Flow</h4>
   <p><strong>File:</strong> <code>tax-compliance/internal/app/tds/payout_orchestrator.go</code></p>
+  <p><strong>Flow Overview:</strong> The payout with TDS call lands on the Compliance Service first. TDS calculation is performed, and the <code>tds_payments</code> entity is created. Subsequently, the Payouts service is called with the net payout details and TDS details in the <code>tds</code> field (which Payouts already supports). The <code>tax_payment_id</code> in <code>payout_details</code> is mapped to the <code>tds_payments.id</code> from the Compliance Service.</p>
   <p><strong>Logic:</strong></p>
   <ol>
     <li>Validate TDS fields (PAN format, category exists, amounts consistent)</li>
-    <li>Create TDS Payment entity with <code>status: "pending"</code></li>
-    <li>Call Payouts API: <code>POST /v1/payouts</code> with tds_payment_id</li>
+    <li>Perform TDS calculation based on the gross amount and TDS category/rate</li>
+    <li>Create TDS Payment entity in <code>tds_payments</code> table with <code>status: "pending"</code></li>
+    <li>Call Payouts API: <code>POST /v1/payouts</code> with:
+      <ul>
+        <li>Net payout amount (gross - TDS)</li>
+        <li>TDS details in the <code>tds</code> field (category, amount, rate)</li>
+        <li><code>tds_payment_id</code> reference to link to the created TDS Payment entity</li>
+      </ul>
+    </li>
     <li>If Payouts succeeds: Update TDS Payment <code>source_transaction_id = payout_id</code></li>
     <li>If Payouts fails: Update TDS Payment <code>status = "cancelled"</code>, return error</li>
     <li>Return combined response to UI/FE</li>
@@ -1572,10 +1175,11 @@ Example: category 194J, rate 10%
   <p><strong>File:</strong> <code>internal/app/dtos/payoutDetails.go</code></p>
   <p>For Approach 2, TDSDetails struct stores:</p>
   <ul>
-    <li><code>tds_payment_id</code> - Reference to Tax-Compliance entity</li>
+    <li><code>tds_payment_id</code> - Reference to Tax-Compliance entity (mapped to <code>tds_payments.id</code> from Compliance Service)</li>
     <li><code>category_id</code> - For validation/display</li>
     <li><code>amount</code> - TDS amount for validation/display</li>
   </ul>
+  <p><strong>Mapping:</strong> The <code>tax_payment_id</code> field in <code>payout_details</code> is mapped to the <code>tds_payments.id</code> created in the Compliance Service, establishing a link between the payout record and the TDS payment entity.</p>
 
   <h4>3.2.4 Status Sync via Kafka</h4>
   <p><strong>File:</strong> <code>tax-compliance/internal/consumers/payout_status_consumer.go</code></p>
@@ -1700,233 +1304,123 @@ Example: category 194J, rate 10%
 
   <h3>4.2 Architecture &amp; Flow Diagram</h3>
 
-  <div class="flow-container">
-    <div class="flow-title">Approach 3: Pre-Compute Pattern (RECOMMENDED)</div>
+  
+<div class="flow-diagram" style="background: #1a202c; color: #e2e8f0; padding: 20px; border-radius: 8px; font-family: 'Consolas', 'Monaco', monospace; font-size: 12px; line-height: 1.4; overflow-x: auto; white-space: pre;">
+┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+│            APPROACH 3: PRE-COMPUTE PATTERN (RECOMMENDED) ✓                                  │
+├─────────────────────────────────────────────────────────────────────────────────────────────┤
+│  Legend: [UI/FE/BFF]  [Tax-Compliance]  [Payouts - Minimal Changes]  [Kafka]  [Database]    │
+└─────────────────────────────────────────────────────────────────────────────────────────────┘
 
-    <!-- Legend -->
-    <div class="flow-legend">
-      <div class="flow-legend-item">
-        <div class="flow-legend-color" style="background: #f3e8ff; border: 2px solid #9333ea;"></div>
-        <span>UI/FE/BFF</span>
-      </div>
-      <div class="flow-legend-item">
-        <div class="flow-legend-color" style="background: #dbeafe; border: 2px solid #2563eb;"></div>
-        <span>Tax-Compliance</span>
-      </div>
-      <div class="flow-legend-item">
-        <div class="flow-legend-color" style="background: #dcfce7; border: 2px solid #16a34a;"></div>
-        <span>Payouts (Minimal Changes)</span>
-      </div>
-      <div class="flow-legend-item">
-        <div class="flow-legend-color" style="background: #ffedd5; border: 2px solid #ea580c;"></div>
-        <span>Kafka</span>
-      </div>
-    </div>
+═══════════════════════════════════════════════════════════════════════════════════════════════
+ PHASE 1: COMPUTE TDS (Before Payout Creation - BFF calls, NOT Payouts)
+═══════════════════════════════════════════════════════════════════════════════════════════════
 
-    <!-- Phase 1: COMPUTE (Before Payout) -->
-    <div class="flow-section">
-      <div class="flow-section-title">Phase 1: Compute TDS (Before Payout Creation)</div>
+ ① BFF Calls Tax-Compliance Compute API
 
-      <div class="flow-step">
-        <div class="flow-step-number">1</div>
-        <div class="flow-step-title">BFF Calls Tax-Compliance Compute API</div>
-        <div class="flow-step-desc">BFF/Dashboard calls compute BEFORE payout creation — not Payouts</div>
-      </div>
+ ┌────────────────────┐     POST /v1/tds/compute      ┌────────────────────┐
+ │     BFF /          │ ────────────────────────────▶ │   Tax-Compliance   │
+ │     Dashboard      │                               │                    │
+ │                    │   merchant_id                 │  - Lookup rate     │
+ │                    │   contact_id                  │  - Check LDC       │
+ │                    │   category: "194J"            │  - Calculate       │
+ │                    │   vendor_payment_amount:      │    breakdown       │
+ │                    │     1000000                   │                    │
+ │                    │   is_ldc_applicable: false    │                    │
+ └────────────────────┘                               └────────────────────┘
 
-      <div class="flow-row">
-        <div class="flow-box frontend">
-          <div class="flow-box-label">POST /v1/tds/compute</div>
-          <div class="flow-box-name">BFF → Tax-Compliance</div>
-          <div class="flow-box-fields">
-            merchant_id<br>
-            contact_id<br>
-            category: "194J"<br>
-            vendor_payment_amount: 1000000<br>
-            is_ldc_applicable: false
-          </div>
-        </div>
-        <div class="flow-arrow">→</div>
-        <div class="flow-box tax-compliance">
-          <div class="flow-box-label">Tax-Compliance</div>
-          <div class="flow-box-name">Computes TDS</div>
-          <div class="flow-box-fields">
-            - Lookup rate for category<br>
-            - Check LDC certificate<br>
-            - Calculate breakdown
-          </div>
-        </div>
-      </div>
+ ② BFF Receives Compute Response
 
-      <div class="flow-step">
-        <div class="flow-step-number">2</div>
-        <div class="flow-step-title">BFF Receives Compute Response</div>
-      </div>
+ ┌────────────────────┐                               ┌────────────────────┐
+ │   Tax-Compliance   │                               │     BFF /          │
+ │                    │   Response:                   │     Dashboard      │
+ │                    │ ────────────────────────────▶ │                    │
+ │  tds_amount:       │   tds_amount: 100000          │  Display Preview:  │
+ │    100000          │   net_amount: 900000          │  ┌──────────────┐  │
+ │  net_amount:       │   category_id: 14             │  │ Gross:₹10,000│  │
+ │    900000          │   effective_rate: 10.0        │  │ TDS:  ₹1,000 │  │
+ │  breakdown: {...}  │   breakdown: {                │  │ Net:  ₹9,000 │  │
+ │                    │     basic_tax: 90000          │  └──────────────┘  │
+ │                    │     cess: 10000               │                    │
+ │                    │   }                           │                    │
+ └────────────────────┘                               └────────────────────┘
 
-      <div class="flow-row">
-        <div class="flow-box tax-compliance">
-          <div class="flow-box-label">Response</div>
-          <div class="flow-box-name">Compute Result</div>
-          <div class="flow-box-fields">
-            tds_amount: 100000<br>
-            net_amount: 900000<br>
-            category_id: 14<br>
-            effective_rate: 10.0<br>
-            breakdown: {<br>
-            &nbsp;&nbsp;basic_tax: 90000<br>
-            &nbsp;&nbsp;cess: 10000<br>
-            }
-          </div>
-        </div>
-        <div class="flow-arrow">→</div>
-        <div class="flow-box frontend">
-          <div class="flow-box-label">Display Preview</div>
-          <div class="flow-box-name">BFF → UI</div>
-          <div class="flow-box-fields">
-            Gross: ₹10,000<br>
-            TDS (10%): ₹1,000<br>
-            <strong>Net Payout: ₹9,000</strong>
-          </div>
-        </div>
-      </div>
-    </div>
+═══════════════════════════════════════════════════════════════════════════════════════════════
+ PHASE 2: CREATE PAYOUT (Payouts Receives Pre-Computed Values - NO S2S Call!)
+═══════════════════════════════════════════════════════════════════════════════════════════════
 
-    <!-- Phase 2: CREATE PAYOUT -->
-    <div class="flow-section">
-      <div class="flow-section-title">Phase 2: Create Payout (Payouts Unchanged)</div>
+ ③ User Confirms → BFF Creates Payout with Pre-Computed Values
 
-      <div class="flow-step">
-        <div class="flow-step-number">3</div>
-        <div class="flow-step-title">User Confirms → BFF Creates Payout with Pre-Computed Values</div>
-        <div class="flow-step-desc">BFF sends NET amount + pre-computed TDS to Payouts. No S2S call in Payouts.</div>
-      </div>
+ ┌────────────────────┐     POST /v2/payouts          ┌────────────────────────────────────┐
+ │     BFF /          │ ────────────────────────────▶ │           Payouts Service          │
+ │     Dashboard      │                               │                                    │
+ │                    │   amount: 900000 (NET)        │  ┌──────────────────────────────┐  │
+ │                    │   fund_account_id             │  │                              │  │
+ │                    │   mode: "IMPS"                │  │   ✓ NO S2S CALL              │  │
+ │                    │   tds: {                      │  │   ✓ NO AMOUNT MUTATION       │  │
+ │                    │     category_id: 14           │  │   ✓ JUST STORE VALUES        │  │
+ │                    │     amount: 100000            │  │                              │  │
+ │                    │     source: "bb_plus" ◀───────│──│── Routing indicator          │  │
+ │                    │     gross_amount: 1000000     │  │                              │  │
+ │                    │     breakdown: {...}          │  └──────────────────────────────┘  │
+ │                    │   }                           │                                    │
+ └────────────────────┘                               └─────────────────┬──────────────────┘
+                                                                        │
+                                                                        ▼
+ ┌─────────────────────────────────────────────────────────────────────────────────────────┐
+ │                                    DATABASE                                              │
+ │  ┌─────────────────────────────────┐      ┌─────────────────────────────────────────┐   │
+ │  │       Table: payouts            │      │       Table: payout_details             │   │
+ │  │  ─────────────────────────────  │      │  ─────────────────────────────────────  │   │
+ │  │  id: "pout_xxx"                 │      │  tds_category_id: 14                    │   │
+ │  │  amount: 900000 (NET)           │      │  tds_amount: 100000                     │   │
+ │  │  status: "created"              │      │  tds_source: "bb_plus"                  │   │
+ │  │                                 │      │  tds_gross_amount: 1000000              │   │
+ │  │                                 │      │  tds_breakdown: {...}                   │   │
+ │  └─────────────────────────────────┘      └─────────────────────────────────────────┘   │
+ └─────────────────────────────────────────────────────────────────────────────────────────┘
 
-      <div class="flow-row">
-        <div class="flow-box frontend">
-          <div class="flow-box-label">POST /v2/payouts</div>
-          <div class="flow-box-name">BFF → Payouts</div>
-          <div class="flow-box-fields">
-            <strong>amount: 900000</strong> (NET)<br>
-            fund_account_id<br>
-            mode: "IMPS"<br>
-            purpose: "vendor_bill"<br>
-            <strong>tds:</strong> {<br>
-            &nbsp;&nbsp;category_id: 14<br>
-            &nbsp;&nbsp;amount: 100000<br>
-            &nbsp;&nbsp;<span style="color:#16a34a;font-weight:600;">source: "bb_plus"</span><br>
-            &nbsp;&nbsp;<span style="color:#16a34a;font-weight:600;">gross_amount: 1000000</span><br>
-            &nbsp;&nbsp;<span style="color:#16a34a;font-weight:600;">breakdown: {...}</span><br>
-            }
-          </div>
-        </div>
-        <div class="flow-arrow">→</div>
-        <div class="flow-box payouts">
-          <div class="flow-box-label">Payouts Service</div>
-          <div class="flow-box-name">No Compute Call!</div>
-          <div class="flow-box-fields">
-            - Validate inputs<br>
-            - Create payout (net)<br>
-            - Store TDS in payout_details<br>
-            - <strong>No S2S call</strong><br>
-            - <strong>No amount mutation</strong>
-          </div>
-        </div>
-      </div>
+═══════════════════════════════════════════════════════════════════════════════════════════════
+ PHASE 3: ASYNC TDS PAYMENT CREATION (Topic Routing Based on Source)
+═══════════════════════════════════════════════════════════════════════════════════════════════
 
-      <div class="flow-group">
-        <div class="flow-group-label">Entities Created (Same as Today)</div>
-        <div class="flow-row">
-          <div class="flow-box database">
-            <div class="flow-box-label">Table: payouts</div>
-            <div class="flow-box-name">pout_xxx</div>
-            <div class="flow-box-fields">
-              id: "pout_xxx"<br>
-              amount: 900000 (NET)<br>
-              status: "created"
-            </div>
-          </div>
-          <div class="flow-box database">
-            <div class="flow-box-label">Table: payout_details</div>
-            <div class="flow-box-name">additional_info</div>
-            <div class="flow-box-fields">
-              tds_category_id: 14<br>
-              tds_amount: 100000<br>
-              <span style="color:#16a34a;">tds_source: "bb_plus"</span><br>
-              <span style="color:#16a34a;">tds_gross_amount: 1000000</span><br>
-              <span style="color:#16a34a;">tds_breakdown: {...}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+ ④ Payout Reaches Terminal State → Route to Correct Topic
 
-    <!-- Phase 3: ASYNC TDS ENTITY -->
-    <div class="flow-section">
-      <div class="flow-section-title">Phase 3: Async TDS Payment Creation (Topic Routing)</div>
+ ┌────────────────────────────────────────────────────────────────────────────────────────┐
+ │                              TOPIC ROUTING LOGIC                                       │
+ │                                                                                        │
+ │  func ProcessTdsForPayout() {                                                          │
+ │      if source == "bb_plus":                                                           │
+ │          topic = "add-tds-entry-bb-plus"  ───▶  Tax-Compliance                         │
+ │      else:                                                                             │
+ │          topic = "add-tds-entry"          ───▶  Vendor-Payments (existing)             │
+ │  }                                                                                     │
+ └────────────────────────────────────────────────────────────────────────────────────────┘
 
-      <div class="flow-step">
-        <div class="flow-step-number">4</div>
-        <div class="flow-step-title">Payout Reaches Terminal State → Route to Correct Topic</div>
-        <div class="flow-step-desc">Only change in Payouts: route based on <code>source</code> field</div>
-      </div>
+ ┌────────────────────┐                               ┌────────────────────────────────────┐
+ │      Payouts       │     Publish                   │    Kafka: add-tds-entry-bb-plus   │
+ │                    │ ────────────────────────────▶ │                                    │
+ │  ProcessTds        │   {                           │  ┌─────────────────────────────┐   │
+ │  ForPayout()       │     entity_id: "pout_xxx"     │  │       Tax-Compliance        │   │
+ │                    │     entity_status: "processed"│  │         Consumer            │   │
+ │                    │     tds_amount: 100000        │  │                             │   │
+ │                    │     gross_amount: 1000000     │  │  Creates tds_payment:       │   │
+ │                    │     breakdown: {...}          │  │    tdsp_xxx                 │   │
+ │                    │   }                           │  │    status: "success"        │   │
+ │                    │                               │  │                             │   │
+ └────────────────────┘                               │  └─────────────────────────────┘   │
+                                                      └────────────────────────────────────┘
 
-      <div class="flow-row">
-        <div class="flow-box payouts">
-          <div class="flow-box-label">ProcessTdsForPayout()</div>
-          <div class="flow-box-name">Topic Routing Logic</div>
-          <div class="flow-box-fields">
-            if source == "bb_plus":<br>
-            &nbsp;&nbsp;→ add-tds-entry-bb-plus<br>
-            else:<br>
-            &nbsp;&nbsp;→ add-tds-entry (existing)
-          </div>
-        </div>
-        <div class="flow-arrow">→</div>
-        <div class="flow-box kafka">
-          <div class="flow-box-label">Topic: add-tds-entry-bb-plus</div>
-          <div class="flow-box-name">BB+ TDS Events</div>
-          <div class="flow-box-fields">
-            entity_id: "pout_xxx"<br>
-            entity_status: "processed"<br>
-            tds_amount: 100000<br>
-            gross_amount: 1000000<br>
-            breakdown: {...}
-          </div>
-        </div>
-        <div class="flow-arrow">→</div>
-        <div class="flow-box tax-compliance">
-          <div class="flow-box-label">Consumer</div>
-          <div class="flow-box-name">Tax-Compliance</div>
-        </div>
-      </div>
+┌──────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                                                                              │
+│   ✓ ZERO S2S CALLS IN PAYOUT CREATION CRITICAL PATH                                         │
+│   ✓ Compute happens BEFORE, not DURING payout creation                                      │
+│   ✓ Payouts stays "dumb" about TDS computation                                              │
+│   ✓ Same pattern as existing Vendor-Payments flow                                           │
+│                                                                                              │
+└──────────────────────────────────────────────────────────────────────────────────────────────┘
+</div>
 
-      <div class="flow-group">
-        <div class="flow-group-label">TDS Payment Created (Same as Approach 1)</div>
-        <div class="flow-row">
-          <div class="flow-box database">
-            <div class="flow-box-label">Table: tds_payments</div>
-            <div class="flow-box-name">tdsp_xxx</div>
-            <div class="flow-box-fields">
-              source_transaction_id: "pout_xxx"<br>
-              transaction_source: "BB_PLUS"<br>
-              total_tds_amount: 100000<br>
-              status: "success"
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Key Benefit -->
-    <div class="flow-group" style="border-color: #48bb78; background: rgba(72, 187, 120, 0.1);">
-      <div style="display: flex; align-items: center; gap: 12px;">
-        <div style="font-size: 24px;">✓</div>
-        <div>
-          <strong style="color: #276749;">Zero S2S calls in Payout creation critical path</strong>
-          <div style="font-size: 13px; color: #4a5568;">Compute happens before, not during payout creation</div>
-        </div>
-      </div>
-    </div>
-  </div>
 
   <h3>4.3 API Design: No New Version Needed</h3>
 
@@ -2810,169 +2304,115 @@ Example: 40000 + 5000 + 2500 + 1500 + 1000 = 50000</code></pre>
 
   <h3>10.3 Bulk Flow Diagram (Approach 1)</h3>
 
-  <div class="flow-container">
-    <div class="flow-title">Bulk Payout with TDS (Approach 1)</div>
+  
+<div class="flow-diagram" style="background: #1a202c; color: #e2e8f0; padding: 20px; border-radius: 8px; font-family: 'Consolas', 'Monaco', monospace; font-size: 12px; line-height: 1.4; overflow-x: auto; white-space: pre;">
+┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+│                      BULK PAYOUT WITH TDS (Pre-Compute Pattern)                             │
+└─────────────────────────────────────────────────────────────────────────────────────────────┘
 
-    <!-- Step 1: CSV Upload -->
-    <div class="flow-section">
-      <div class="flow-section-title">Step 1: Batch Upload</div>
+═══════════════════════════════════════════════════════════════════════════════════════════════
+ STEP 1: BATCH UPLOAD
+═══════════════════════════════════════════════════════════════════════════════════════════════
 
-      <div class="flow-step">
-        <div class="flow-step-number">1</div>
-        <div class="flow-step-title">CSV Contains TDS Columns Per Row</div>
-      </div>
+ ┌─────────────────────────────────────────────────────────────────────────────────────────┐
+ │                              CSV File with TDS Columns                                  │
+ │  ┌───────────────────┬──────────────┬──────────────┬──────────┬────────────────────┐   │
+ │  │  fund_account_id  │ gross_amount │ tds_category │   mode   │  contact_pan       │   │
+ │  ├───────────────────┼──────────────┼──────────────┼──────────┼────────────────────┤   │
+ │  │  fa_001           │   1000000    │    194J      │   IMPS   │  ABCDE1234F        │   │
+ │  │  fa_002           │    500000    │    194C      │   NEFT   │  FGHIJ5678K        │   │
+ │  │  fa_003           │    750000    │    194J      │   IMPS   │  KLMNO9012L        │   │
+ │  │  ...              │     ...      │    ...       │   ...    │  ...               │   │
+ │  └───────────────────┴──────────────┴──────────────┴──────────┴────────────────────┘   │
+ └─────────────────────────────────────────────────────────────────────────────────────────┘
+                                              │
+                                              ▼
 
-      <div class="flow-row">
-        <div class="flow-box frontend">
-          <div class="flow-box-label">CSV Columns</div>
-          <div class="flow-box-name">Batch File Format</div>
-          <div class="flow-box-fields">
-            <strong>Standard columns:</strong><br>
-            fund_account_id<br>
-            mode<br>
-            purpose<br>
-            <strong>TDS input columns (NEW):</strong><br>
-            tds_category (e.g. "194J")<br>
-            tds_vendor_payment_amount (gross)<br>
-            tds_source (e.g. "BB+")<br>
-            tds_is_ldc_applicable<br>
-            tds_contact_id<br>
-            <em>Note: amount (net) derived by Payouts via compute</em>
-          </div>
-        </div>
-      </div>
-    </div>
+═══════════════════════════════════════════════════════════════════════════════════════════════
+ STEP 2: PARALLEL COMPUTE (During CSV Parsing - Before User Confirms)
+═══════════════════════════════════════════════════════════════════════════════════════════════
 
-    <!-- Step 2: Batch Processing -->
-    <div class="flow-section">
-      <div class="flow-section-title">Step 2: Batch Processing</div>
+ ┌────────────────────┐                               ┌────────────────────┐
+ │     Dashboard      │   For each row (parallel):    │   Tax-Compliance   │
+ │     Service        │   POST /v1/tds/compute        │      Service       │
+ │                    │ ══════════════════════════▶   │                    │
+ │  Row 1 ─────────── │ ──────────────────────────▶   │  Row 1: compute    │
+ │  Row 2 ─────────── │ ──────────────────────────▶   │  Row 2: compute    │
+ │  Row 3 ─────────── │ ──────────────────────────▶   │  Row 3: compute    │
+ │       ...          │                               │       ...          │
+ │                    │ ◀══════════════════════════   │                    │
+ │                    │   Returns computed values     │                    │
+ └────────────────────┘                               └────────────────────┘
+          │
+          ▼
+ ┌─────────────────────────────────────────────────────────────────────────────────────────┐
+ │                           Preview File Generated                                        │
+ │  ┌───────┬──────────┬─────────┬─────────┬──────────┬─────────────────────────────────┐  │
+ │  │  Row  │  Gross   │   TDS   │   Net   │ Category │              Status             │  │
+ │  ├───────┼──────────┼─────────┼─────────┼──────────┼─────────────────────────────────┤  │
+ │  │   1   │ ₹10,000  │ ₹1,000  │ ₹9,000  │   194J   │  ✓ Ready                        │  │
+ │  │   2   │  ₹5,000  │   ₹100  │ ₹4,900  │   194C   │  ✓ Ready                        │  │
+ │  │   3   │  ₹7,500  │   ₹750  │ ₹6,750  │   194J   │  ✓ Ready                        │  │
+ │  │  ...  │    ...   │   ...   │   ...   │   ...    │  ...                            │  │
+ │  └───────┴──────────┴─────────┴─────────┴──────────┴─────────────────────────────────┘  │
+ └─────────────────────────────────────────────────────────────────────────────────────────┘
+                                              │
+                                              ▼
+                                    User Reviews & Confirms (OTP)
 
-      <div class="flow-step">
-        <div class="flow-step-number">2</div>
-        <div class="flow-step-title">For Each Row: Validate + Create Payout</div>
-      </div>
+═══════════════════════════════════════════════════════════════════════════════════════════════
+ STEP 3: BATCH PROCESSING (No S2S During Creation - Values Already Computed)
+═══════════════════════════════════════════════════════════════════════════════════════════════
 
-      <div class="flow-row">
-        <div class="flow-box payouts">
-          <div class="flow-box-label">Payouts Service</div>
-          <div class="flow-box-name">Batch Processor</div>
-          <div class="flow-box-fields">
-            For each CSV row:<br>
-            1. Validate TDS inputs present<br>
-            2. Call Tax-Compliance compute (S2S)<br>
-            3. Derive net amount from response<br>
-            4. Create payout (net amount)<br>
-            5. Create payout_details<br>
-            &nbsp;&nbsp;(tds_input + tds_computed)
-          </div>
-        </div>
-      </div>
+ ┌────────────────────┐                               ┌────────────────────┐
+ │     Dashboard      │   For each row:               │      Payouts       │
+ │     Service        │   POST /v2/payouts            │      Service       │
+ │                    │ ────────────────────────────▶ │                    │
+ │  Row 1: pout_001   │   (pre-computed TDS values)   │  ✓ No compute call │
+ │  Row 2: pout_002   │                               │  ✓ Just store data │
+ │  Row 3: pout_003   │                               │  ✓ Fast processing │
+ │       ...          │                               │                    │
+ └────────────────────┘                               └─────────┬──────────┘
+                                                                │
+                                                                ▼
+ ┌─────────────────────────────────────────────────────────────────────────────────────────┐
+ │                      N Payout Entities Created (linked via batch_id)                    │
+ │                                                                                         │
+ │    pout_001 ──┐                                                                         │
+ │    pout_002 ──┼──▶  batch_id: "batch_xxx"                                               │
+ │    pout_003 ──┤                                                                         │
+ │       ...   ──┘                                                                         │
+ └─────────────────────────────────────────────────────────────────────────────────────────┘
 
-      <div class="flow-group">
-        <div class="flow-group-label">N Payout Entities Created (linked via batch_id)</div>
-        <div class="flow-row">
-          <div class="flow-box database">
-            <div class="flow-box-label">Table: payouts</div>
-            <div class="flow-box-name">pout_001...pout_N</div>
-            <div class="flow-box-fields">
-              id: pout_xxx<br>
-              batch_id: batch_xxx<br>
-              amount: (net)<br>
-              status: "created"
-            </div>
-          </div>
-          <div class="flow-box database">
-            <div class="flow-box-label">Table: payout_details</div>
-            <div class="flow-box-name">Per payout</div>
-            <div class="flow-box-fields">
-              tds_input: {<br>
-              &nbsp;&nbsp;category, vendor_payment_amount,<br>
-              &nbsp;&nbsp;source, is_ldc_applicable,<br>
-              &nbsp;&nbsp;contact_id<br>
-              }<br>
-              tds_computed: {<br>
-              &nbsp;&nbsp;total_tds_amount, rate,<br>
-              &nbsp;&nbsp;breakdown fields...<br>
-              }
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+═══════════════════════════════════════════════════════════════════════════════════════════════
+ STEP 4: ASYNC TDS PAYMENT CREATION (Per Processed Payout)
+═══════════════════════════════════════════════════════════════════════════════════════════════
 
-    <!-- Step 3: Async Processing -->
-    <div class="flow-section">
-      <div class="flow-section-title">Step 3: Individual Payout Processing (Same as Single Flow)</div>
+ ┌────────────────────┐                               ┌────────────────────────────────────┐
+ │      Payouts       │   Per processed payout:       │    Kafka: add-tds-entry-bb-plus   │
+ │   (on terminal     │ ────────────────────────────▶ │                                    │
+ │    state)          │   pout_001: {...}             │  ┌─────────────────────────────┐   │
+ │                    │   pout_002: {...}             │  │       Tax-Compliance        │   │
+ │                    │   pout_003: {...}             │  │         Consumer            │   │
+ │                    │        ...                    │  │                             │   │
+ └────────────────────┘                               │  │  Creates N TDS Payments:    │   │
+                                                      │  │    tdsp_001                 │   │
+                                                      │  │    tdsp_002                 │   │
+                                                      │  │    tdsp_003                 │   │
+                                                      │  │       ...                   │   │
+                                                      │  └─────────────────────────────┘   │
+                                                      └────────────────────────────────────┘
 
-      <div class="state-flow">
-        <div class="state-box created">created</div>
-        <div class="flow-arrow">→</div>
-        <div class="state-box processing">initiated</div>
-        <div class="flow-arrow">→</div>
-        <div class="state-box processing">processing</div>
-        <div class="flow-arrow">→</div>
-        <div class="state-box success">processed</div>
-      </div>
-    </div>
+┌──────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                                                                              │
+│   ✓ Bulk payouts converge to single payout flow                                             │
+│   ✓ Each CSV row becomes an individual payout following standard TDS flow                   │
+│   ✓ Compute done upfront (parallel), not during batch processing                            │
+│   ✓ 1 TDS Payment per processed payout                                                      │
+│                                                                                              │
+└──────────────────────────────────────────────────────────────────────────────────────────────┘
+</div>
 
-    <!-- Step 4: Kafka to Tax-Compliance -->
-    <div class="flow-section">
-      <div class="flow-section-title">Step 4: Async TDS Payment Creation</div>
-
-      <div class="flow-row">
-        <div class="flow-box payouts">
-          <div class="flow-box-label">Per Processed Payout</div>
-          <div class="flow-box-name">Payouts</div>
-        </div>
-        <div class="flow-arrow">→</div>
-        <div class="flow-box kafka">
-          <div class="flow-box-label">Topic</div>
-          <div class="flow-box-name">add-tds-entry-bb-plus</div>
-        </div>
-        <div class="flow-arrow">→</div>
-        <div class="flow-box tax-compliance">
-          <div class="flow-box-label">Consumer</div>
-          <div class="flow-box-name">Tax-Compliance</div>
-        </div>
-      </div>
-
-      <div class="flow-group">
-        <div class="flow-group-label">N TDS Payment Entities Created</div>
-        <div class="flow-row">
-          <div class="flow-box database">
-            <div class="flow-box-label">tdsp_001</div>
-            <div class="flow-box-name">success</div>
-          </div>
-          <div class="flow-box database">
-            <div class="flow-box-label">tdsp_002</div>
-            <div class="flow-box-name">success</div>
-          </div>
-          <div class="flow-box database">
-            <div class="flow-box-label">...</div>
-            <div class="flow-box-name">...</div>
-          </div>
-          <div class="flow-box database">
-            <div class="flow-box-label">tdsp_N</div>
-            <div class="flow-box-name">success</div>
-          </div>
-        </div>
-        <div style="text-align: center; color: #718096; font-size: 13px; margin-top: 8px;">
-          1 TDS Payment per processed payout
-        </div>
-      </div>
-    </div>
-
-    <!-- Key Point -->
-    <div class="flow-group" style="border-color: #48bb78; background: rgba(72, 187, 120, 0.1);">
-      <div style="display: flex; align-items: center; gap: 12px;">
-        <div style="font-size: 24px;">✓</div>
-        <div>
-          <strong style="color: #276749;">Bulk payouts converge to single payout flow</strong>
-          <div style="font-size: 13px; color: #4a5568;">Each CSV row becomes an individual payout that follows the standard TDS flow</div>
-        </div>
-      </div>
-    </div>
-  </div>
 
   <h3>10.4 Required Changes for Bulk Flow</h3>
 
@@ -3867,35 +3307,69 @@ AND p.id NOT IN (
     </ol>
   </div>
 
-  <div class="flow-container">
-    <div class="flow-title">TDS Money Movement Timeline</div>
-    <pre style="font-family: monospace; font-size: 13px; line-height: 1.5;">
-┌─────────────────────────────────────────────────────────────────────────────────────────┐
-│                              TDS MONEY MOVEMENT TIMELINE                                 │
-├─────────────────────────────────────────────────────────────────────────────────────────┤
-│                                                                                          │
-│  During Month (e.g., January)           1st-4th of Next Month      7th of Next Month    │
-│  ═════════════════════════════          ══════════════════════     ════════════════     │
-│                                                                                          │
-│  ┌──────────────┐                       ┌──────────────────┐       ┌────────────────┐   │
-│  │ Payout       │  NET amount           │ TDS Deduction    │       │ TDS Payment    │   │
-│  │ Created      │ ───────────────────▶  │ Customer Account │       │ to Government  │   │
-│  │              │  to Vendor            │ → Compliance     │       │                │   │
-│  └──────┬───────┘                       └────────┬─────────┘       └────────────────┘   │
-│         │                                        │                                       │
-│         │ Kafka: add-tds-entry-bb-plus           │                                       │
-│         ▼                                        ▼                                       │
-│  ┌──────────────┐                       ┌──────────────────┐                            │
-│  │ TDS Payment  │                       │ TDS Payment      │                            │
-│  │ Record       │  status: PENDING      │ Record           │  status: PAID              │
-│  │ Created      │ ─────────────────────▶│ Updated          │                            │
-│  └──────────────┘                       └──────────────────┘                            │
-│                                                                                          │
-│  ◀──────────────── CASE 1 ────────────────▶ ◀─ CASE 2 ─▶     ◀────── CASE 3 ──────▶    │
-│                                                                                          │
-└─────────────────────────────────────────────────────────────────────────────────────────┘
-    </pre>
-  </div>
+  
+<div class="flow-diagram" style="background: #1a202c; color: #e2e8f0; padding: 20px; border-radius: 8px; font-family: 'Consolas', 'Monaco', monospace; font-size: 12px; line-height: 1.4; overflow-x: auto; white-space: pre;">
+┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+│                            TDS MONEY MOVEMENT TIMELINE                                      │
+└─────────────────────────────────────────────────────────────────────────────────────────────┘
+
+ ┌───────────────────────────┐  ┌───────────────────────────┐  ┌───────────────────────────┐
+ │   During Month            │  │   1st-4th of Next Month   │  │   7th of Next Month       │
+ │   (e.g., January)         │  │                           │  │                           │
+ └───────────────────────────┘  └───────────────────────────┘  └───────────────────────────┘
+              │                              │                              │
+              │                              │                              │
+              ▼                              ▼                              ▼
+ ┌───────────────────────────┐  ┌───────────────────────────┐  ┌───────────────────────────┐
+ │                           │  │                           │  │                           │
+ │   PAYOUT CREATED          │  │   TDS DEDUCTION           │  │   TDS PAYMENT             │
+ │                           │  │                           │  │   TO GOVERNMENT           │
+ │   ┌───────────────────┐   │  │   ┌───────────────────┐   │  │                           │
+ │   │ Vendor receives   │   │  │   │ Customer Account  │   │  │   ┌───────────────────┐   │
+ │   │ NET amount        │   │  │   │ ─────────────────▶│   │  │   │ Compliance pays   │   │
+ │   │ (₹9,000)          │───┼──┼──▶│ Compliance Acct   │───┼──┼──▶│ to Government     │   │
+ │   │                   │   │  │   │ (₹1,000 TDS)      │   │  │   │                   │   │
+ │   └───────────────────┘   │  │   └───────────────────┘   │  │   └───────────────────┘   │
+ │                           │  │                           │  │                           │
+ └─────────────┬─────────────┘  └─────────────┬─────────────┘  └───────────────────────────┘
+               │                              │
+               │ Kafka: add-tds-entry-bb-plus │
+               ▼                              ▼
+ ┌───────────────────────────┐  ┌───────────────────────────┐
+ │                           │  │                           │
+ │   TDS Payment Record      │  │   TDS Payment Record      │
+ │   CREATED                 │  │   UPDATED                 │
+ │                           │  │                           │
+ │   ┌───────────────────┐   │  │   ┌───────────────────┐   │
+ │   │ status: PENDING   │───┼──┼──▶│ status: PAID      │   │
+ │   └───────────────────┘   │  │   └───────────────────┘   │
+ │                           │  │                           │
+ └───────────────────────────┘  └───────────────────────────┘
+
+
+═══════════════════════════════════════════════════════════════════════════════════════════════
+                              REVERSAL SCENARIOS
+═══════════════════════════════════════════════════════════════════════════════════════════════
+
+ ◀───────────── CASE 1 ─────────────▶  ◀──── CASE 2 ────▶  ◀──────── CASE 3 ────────▶
+
+ ┌───────────────────────────────────┐ ┌──────────────────┐ ┌──────────────────────────┐
+ │ Reversal BEFORE TDS deduction     │ │ Reversal AFTER   │ │ Reversal AFTER TDS paid  │
+ │ from customer account             │ │ TDS deduction    │ │ to government            │
+ │                                   │ │ but BEFORE       │ │                          │
+ │ TDS Payment: PENDING → CANCELLED  │ │ payment to govt  │ │ TDS Payment: PAID →      │
+ │                                   │ │                  │ │   REVERSAL_PENDING       │
+ │ Action: Cancel TDS Payment        │ │ TDS Payment:     │ │                          │
+ │         No money movement needed  │ │ DEDUCTED →       │ │ Action: Alert Ops Team   │
+ │                                   │ │   REFUNDED       │ │         Manual recovery  │
+ │ ✓ Automatic                       │ │                  │ │         from customer    │
+ │                                   │ │ Action: Refund   │ │                          │
+ │                                   │ │   to customer    │ │ ⚠️ Cannot recover from   │
+ │                                   │ │                  │ │   government             │
+ │                                   │ │ ✓ Automatic      │ │                          │
+ └───────────────────────────────────┘ └──────────────────┘ └──────────────────────────┘
+</div>
+
 
   <h3>13.2 Reversal Scenarios</h3>
 
