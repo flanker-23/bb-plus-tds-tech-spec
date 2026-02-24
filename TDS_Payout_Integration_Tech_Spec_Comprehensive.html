@@ -1211,7 +1211,7 @@ sequenceDiagram
   <hr>
 
   <!-- ═══════════════════════════════════════════════════════════════════════════════════ -->
-  <!-- APPROACH 3: PRE-COMPUTE PATTERN (RECOMMENDED)                                        -->
+  <!-- APPROACH 3: PRE-COMPUTE PATTERN (ALTERNATIVE - TWO API CALLS)                        -->
   <!-- ═══════════════════════════════════════════════════════════════════════════════════ -->
 
   <h2 id="approach-3">4. Approach 3: Pre-Compute Pattern (Alternative - Two API Calls)</h2>
@@ -1665,9 +1665,9 @@ func (c Core) ProcessTdsForPayout(ctx context.Context, payout *Payout, oldStatus
       </tr>
       <tr>
         <td><strong>TDS entity created</strong></td>
-        <td class="pro" style="background:#f0fff4;"><strong>Synchronously</strong></td>
+        <td class="pro" style="background:#f0fff4;"><strong>Synchronously (enrichment)</strong></td>
         <td class="pro">Synchronously</td>
-        <td class="con">Asynchronously</td>
+        <td class="pro"><strong>Synchronously (first call)</strong></td>
       </tr>
       <tr>
         <td><strong>Testing complexity</strong></td>
@@ -1701,9 +1701,9 @@ func (c Core) ProcessTdsForPayout(ctx context.Context, payout *Payout, oldStatus
       </tr>
       <tr>
         <td><strong>TDS Payment ID in response</strong></td>
-        <td class="con">No (async)</td>
-        <td class="pro">Yes (sync)</td>
-        <td class="con">No (async)</td>
+        <td class="pro">Yes (in payout response)</td>
+        <td class="pro">Yes (in payout response)</td>
+        <td class="con">Yes (but in first call, not payout response)</td>
       </tr>
     </tbody>
   </table>
