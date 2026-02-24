@@ -540,6 +540,36 @@ Example: Section 194J (10% rate)
 
   <h2 id="solutions">8.1 List of Possible Solutions</h2>
 
+  <p>Three approaches were evaluated. Only the final selected approach (Approach 3) is detailed here. Approaches 1 and 2 are documented below for reference.</p>
+
+  <table>
+    <thead>
+      <tr><th>Approach</th><th>Summary</th><th>S2S in Payout?</th><th>Verdict</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>1. Inline Compute</strong></td>
+        <td>Payouts calls Tax-Compliance synchronously during payout creation</td>
+        <td class="con">Yes — Payouts→Tax-Compliance</td>
+        <td class="con"><strong>Not Recommended</strong></td>
+      </tr>
+      <tr>
+        <td><strong>2. TC Orchestrated</strong></td>
+        <td>Tax-Compliance calls Payouts (reversed S2S); creates TDS entity synchronously</td>
+        <td class="con">Yes — Tax-Compliance→Payouts</td>
+        <td class="con"><strong>Alternative only</strong></td>
+      </tr>
+      <tr>
+        <td><strong>3. Pre-Compute</strong></td>
+        <td>Caller pre-computes TDS via Tax-Compliance, passes values to Payouts; no S2S</td>
+        <td class="pro">No</td>
+        <td class="pro"><strong>✓ Selected</strong></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <hr>
+
   <h3 id="approach-1">Approach 1: Inline Compute Pattern (Not Recommended)</h3>
 
   <div class="approach-header">
@@ -547,9 +577,9 @@ Example: Section 194J (10% rate)
     <span class="muted">Payout API accepts TDS inputs; Payouts calls Tax-Compliance internally (S2S); async TDS entity creation</span>
   </div>
 
-  <h3>2.1 How It Works</h3>
+  <h4>How It Works</h4>
   <p>
-    In this approach, the Payouts service accepts TDS computation inputs (gross amount, category, contact details)
+    The Payouts service accepts TDS computation inputs (gross amount, category, contact details)
     and internally calls the Tax-Compliance service to compute TDS before creating the payout.
   </p>
 
@@ -564,7 +594,7 @@ Example: Section 194J (10% rate)
     </ol>
   </div>
 
-  <h3>2.2 Flow Diagram (High-Level)</h3>
+  <h4>Flow Diagram</h4>
 
   <div class="mermaid-container">
     <div class="mermaid">
@@ -590,7 +620,7 @@ sequenceDiagram
     </div>
   </div>
 
-  <h3>2.3 Payout Type Considerations</h3>
+  <h4>Payout Type Considerations</h4>
   <table>
     <thead>
       <tr>
@@ -614,7 +644,7 @@ sequenceDiagram
     </tbody>
   </table>
 
-  <h3>2.4 Pros and Cons</h3>
+  <h4>Pros and Cons</h4>
   <table>
     <thead>
       <tr><th>Pros</th><th>Cons</th></tr>
@@ -665,9 +695,9 @@ sequenceDiagram
     <span class="muted">Tax-Compliance orchestrates both TDS computation and payout creation</span>
   </div>
 
-  <h3>3.1 How It Works</h3>
+  <h4>How It Works</h4>
   <p>
-    In this approach, Tax-Compliance becomes the orchestrator. It exposes a single API endpoint
+    Tax-Compliance becomes the orchestrator. It exposes a single API endpoint
     that creates both the TDS Payment entity and the payout.
   </p>
 
@@ -688,7 +718,7 @@ sequenceDiagram
     </ol>
   </div>
 
-  <h3>3.2 Flow Diagram (High-Level)</h3>
+  <h4>Flow Diagram</h4>
 
   <div class="mermaid-container">
     <div class="mermaid">
@@ -715,7 +745,7 @@ sequenceDiagram
     </div>
   </div>
 
-  <h3>3.3 Payout Type Considerations</h3>
+  <h4>Payout Type Considerations</h4>
   <table>
     <thead>
       <tr>
@@ -739,7 +769,7 @@ sequenceDiagram
     </tbody>
   </table>
 
-  <h3>3.4 Pros and Cons</h3>
+  <h4>Pros and Cons</h4>
   <table>
     <thead>
       <tr><th>Pros</th><th>Cons</th></tr>
@@ -801,7 +831,7 @@ sequenceDiagram
     </p>
   </div>
 
-  <h3>4.1 How It Works</h3>
+  <h4>How It Works</h4>
   <p>
     This approach separates TDS computation from payout creation, following the same pattern
     already used by Vendor-Payments.
@@ -832,7 +862,7 @@ sequenceDiagram
     </ol>
   </div>
 
-  <h3>4.2 Flow Diagram (High-Level)</h3>
+  <h4>Flow Diagram</h4>
 
   <div class="mermaid-container">
     <div class="mermaid">
@@ -860,7 +890,7 @@ sequenceDiagram
     </div>
   </div>
 
-  <h3>4.3 Key Differences from Approach 1</h3>
+  <h4>Key Differences from Approach 1 (Inline)</h4>
   <table>
     <thead>
       <tr>
@@ -903,7 +933,7 @@ sequenceDiagram
     </tbody>
   </table>
 
-  <h3>4.4 Channel-by-Channel Flow</h3>
+  <h4>Channel-by-Channel Flow</h4>
 
   <div class="warning">
     <h4>Core Design Tension — API Payouts</h4>
@@ -1032,7 +1062,7 @@ sequenceDiagram
     </div>
   </div>
 
-  <h3>4.5 Changes Required (High-Level)</h3>
+  <h4>Changes Required (High-Level)</h4>
   <table>
     <thead>
       <tr>
@@ -1089,7 +1119,7 @@ sequenceDiagram
     </tbody>
   </table>
 
-  <h3>4.6 Pros and Cons</h3>
+  <h4>Pros and Cons</h4>
   <table>
     <thead>
       <tr><th>Pros</th><th>Cons</th></tr>
