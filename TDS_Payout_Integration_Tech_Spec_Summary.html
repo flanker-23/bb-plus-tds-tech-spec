@@ -214,7 +214,7 @@
       <li><a href="#current-arch">7. Current Architecture / Current HLD</a></li>
       <li><a href="#final-approach">8. Final Approach — Specifications</a>
         <ul>
-          <li><a href="#solutions">8.1 List of Possible Solutions</a></li>
+          <li><a href="#solutions">8.1 List of Possible Solutions</a> (Approach 1, 2, 3 + <a href="#comparison">Comparison Table</a>)</li>
           <li><a href="#assumptions">8.2 Assumptions</a></li>
           <li><a href="#schema">8.5 Data Model / Schema Changes</a></li>
           <li><a href="#logic">8.6 Business Logic Changes</a></li>
@@ -267,7 +267,7 @@
 
   <h3>2.2 Relevant Resources</h3>
   <ul>
-    <li><a href="TDS_Payout_Integration_Tech_Spec.html">Full Technical Specification (detailed implementation)</a></li>
+    <li><a href="TDS_Payout_Integration_Tech_Spec_Comprehensive.html">Full Technical Specification (detailed implementation)</a></li>
     <li><a href="https://flanker-23.github.io/bb-plus-tds-tech-spec/">GitHub Pages — Live Spec</a></li>
   </ul>
 
@@ -1166,7 +1166,7 @@ sequenceDiagram
 
   <hr>
 
-  <h3>Comparison of All Three Approaches</h3>
+  <h3 id="comparison">Comparison of All Three Approaches</h3>
   <table>
     <thead>
       <tr>
@@ -1240,6 +1240,16 @@ sequenceDiagram
     </tbody>
   </table>
 
+  <div class="recommendation">
+    <h3>Final Decision: Approach 3 — Pre-Compute Pattern</h3>
+    <p>
+      <strong>Approach 3 is selected for all channels</strong> (Dashboard, Bulk CSV, API). It adds zero latency to payout creation,
+      fully decouples Payouts from Tax-Compliance, requires only low-risk additive changes to Payouts, and works uniformly
+      across all payout types. Trade-offs (two API calls, async TDS Payment ID) are accepted and mitigated.
+    </p>
+    <p>See <a href="#final-approach">Section 8</a> for full implementation specification and <a href="#logic">Section 8.6</a> for routing logic details.</p>
+  </div>
+
   <hr>
 
   <h2 id="assumptions">8.2 Assumptions</h2>
@@ -1287,6 +1297,57 @@ sequenceDiagram
   </table>
 
   <h2 id="logic">8.6 Business Logic Changes</h2>
+
+  <h3>8.6.1 Payouts Service — Kafka Routing Logic</h3>
+
+  <p>The only business logic change in Payouts is inside <code>ProcessTdsForPayout()</code> in <code>core.go</code>. When a payout reaches a terminal state, the function checks the <code>tds.source</code> field to decide which Kafka topic to publish to:</p>
+
+  <div class="info">
+    <h4>Routing Decision in <code>ProcessTdsForPayout()</code></h4>
+    <ul>
+      <li>If <code>tds.source == "bb_plus"</code> → publish to <strong><code>add-tds-entry-bb-plus</code></strong> (new topic, consumed by Tax-Compliance)</li>
+      <li>Otherwise → publish to <strong><code>add-tds-entry</code></strong> (existing topic, consumed by Vendor-Payments — unchanged)</li>
+      <li>If <code>tds.source</code> is empty or not <code>"bb_plus"</code> → existing behaviour, no change</li>
+    </ul>
+  </div>
+
+  <table>
+    <thead>
+      <tr><th>Change Area</th><th>What Changes</th><th>Impact</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>TDSDetails struct</strong></td>
+        <td>Add optional fields: <code>source</code> (string), <code>gross_amount</code> (int64), <code>breakdown</code> (JSON)</td>
+        <td class="pro">Additive — no existing callers affected</td>
+      </tr>
+      <tr>
+        <td><strong>Payout API handler</strong></td>
+        <td>Accept new optional TDS fields from request body; store in <code>payout_details</code> JSON</td>
+        <td class="pro">No version change to <code>/v2/payouts</code></td>
+      </tr>
+      <tr>
+        <td><strong><code>ProcessTdsForPayout()</code></strong></td>
+        <td>Add <code>if tds.source == "bb_plus"</code> branch → publish to new Kafka topic with enriched payload</td>
+        <td class="pro">Else-branch untouched; Vendor-Payments routing unchanged</td>
+      </tr>
+      <tr>
+        <td><strong>Kafka message</strong></td>
+        <td>BB+ enrichment fields (<code>bb_plus_tds_input</code>, <code>bb_plus_tds_computed</code>) added with <code>omitempty</code> — nil for all non-BB+ payouts</td>
+        <td class="pro">Backward-compatible; existing consumers ignore new fields</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="warning">
+    <h4>What Payouts Does NOT Do</h4>
+    <ul>
+      <li>Payouts does <strong>not</strong> call Tax-Compliance — no S2S call added</li>
+      <li>Payouts does <strong>not</strong> validate the pre-computed <code>tds_amount</code> — caller's responsibility</li>
+      <li>Payouts does <strong>not</strong> mutate the payout amount (caller sends NET amount directly)</li>
+      <li>Payouts does <strong>not</strong> create any <code>tds_payments</code> entity — Tax-Compliance does that asynchronously</li>
+    </ul>
+  </div>
 
   <h2 id="recommendation">8.6.2 Final Recommendation Summary</h2>
 
@@ -1448,7 +1509,7 @@ sequenceDiagram
   </table>
 
   <h3>10.3 Detailed Implementation Spec</h3>
-  <p>See <a href="TDS_Payout_Integration_Tech_Spec.html">Full Technical Specification — Section 11: Codebase Analysis &amp; Implementation Plan</a> for file-level changes, API contracts, struct definitions, and sequence of operations.</p>
+  <p>See <a href="TDS_Payout_Integration_Tech_Spec_Comprehensive.html">Full Technical Specification — Section 11: Codebase Analysis &amp; Implementation Plan</a> for file-level changes, API contracts, struct definitions, and sequence of operations.</p>
 
   <h3>10.4 Success Criteria</h3>
   <ul>
@@ -1536,55 +1597,48 @@ sequenceDiagram
 
   <h3>13.1 Production Rollout and Ramp Plan</h3>
 
-  <h3>8.2 Observability</h3>
   <table>
     <thead>
-      <tr><th>Component</th><th>Metrics & Monitoring</th></tr>
+      <tr><th>Phase</th><th>Scope</th><th>Risk</th><th>Notes</th></tr>
     </thead>
     <tbody>
       <tr>
-        <td><strong>Tax-Compliance Compute API</strong></td>
-        <td>
-          <ul>
-            <li>Request count, latency (p50, p95, p99)</li>
-            <li>Error rate by error type</li>
-            <li>LDC application rate</li>
-          </ul>
-        </td>
+        <td><strong>Phase 1</strong></td>
+        <td>Payouts service: add optional TDS fields + Kafka topic routing (<code>source == "bb_plus"</code> → <code>add-tds-entry-bb-plus</code>)</td>
+        <td class="pro">Low</td>
+        <td>No UI change; fully backward-compatible; Vendor-Payments unaffected</td>
       </tr>
       <tr>
-        <td><strong>Payouts API</strong></td>
-        <td>
-          <ul>
-            <li>TDS payout count (source = bb_plus)</li>
-            <li>Kafka publish success/failure rate</li>
-          </ul>
-        </td>
+        <td><strong>Phase 2</strong></td>
+        <td>Tax-Compliance: build compute API endpoint + Kafka consumer + <code>tds_payments</code> entity creation</td>
+        <td>Medium</td>
+        <td>Independent of Payouts; can be tested in isolation</td>
       </tr>
       <tr>
-        <td><strong>Kafka Consumer</strong></td>
-        <td>
-          <ul>
-            <li>Consumer lag</li>
-            <li>Message processing rate</li>
-            <li>DLQ message count</li>
-            <li>TDS Payment creation success/failure rate</li>
-          </ul>
-        </td>
+        <td><strong>Phase 3</strong></td>
+        <td>Tax-Compliance BFF: UI single-payout flow (preview TDS → confirm → create payout)</td>
+        <td>Medium</td>
+        <td>First user-facing feature; gated behind feature flag</td>
       </tr>
       <tr>
-        <td><strong>Alerting</strong></td>
-        <td>
-          <ul>
-            <li>Compute API error rate &gt; 5%</li>
-            <li>Kafka consumer lag &gt; 1000 messages</li>
-            <li>DLQ messages present</li>
-            <li>Payout-to-TDS-Payment reconciliation gaps</li>
-          </ul>
-        </td>
+        <td><strong>Phase 4</strong></td>
+        <td>Bulk CSV integration: TDS columns in CSV template, row-by-row compute, preview file</td>
+        <td>Medium</td>
+        <td>Reuses Phase 1 + 2 work; validate with 10,000-row load test</td>
+      </tr>
+      <tr>
+        <td><strong>Phase 5</strong></td>
+        <td>API documentation + external merchant guide for two-call (compute → payout) pattern</td>
+        <td class="pro">Low</td>
+        <td>Completes all channels; opens API Payouts to BB+ merchants</td>
       </tr>
     </tbody>
   </table>
+
+  <div class="info">
+    <h4>Feature Flag Strategy</h4>
+    <p>Each phase deployed behind a Splitz flag (<code>tds_bb_plus_enabled</code>). Phases 1–2 can be merged to main immediately — they are no-ops until the flag is enabled. Phases 3–5 ramp by merchant cohort.</p>
+  </div>
 
   <h3>13.2 Backward Compatibility</h3>
   <p>All new Payouts fields are optional. Existing <code>/v2/payouts</code> calls without TDS fields continue to work exactly as before. Vendor-Payments flows are unaffected.</p>
@@ -1650,7 +1704,7 @@ sequenceDiagram
   <!-- ═══════════════════════════════════════════════════════════════════════ -->
   <h2 id="appendix">17. Appendix</h2>
   <ul>
-    <li><a href="TDS_Payout_Integration_Tech_Spec.html">Full Technical Specification</a> — API contracts, Go struct changes, SQL schemas, codebase reference, test plans</li>
+    <li><a href="TDS_Payout_Integration_Tech_Spec_Comprehensive.html">Full Technical Specification</a> — API contracts, Go struct changes, SQL schemas, codebase reference, test plans</li>
     <li><a href="https://flanker-23.github.io/bb-plus-tds-tech-spec/">GitHub Pages — Live Docs</a></li>
     <li><a href="https://razorpay.atlassian.net/">JIRA / Asana Project Tracker</a> — TBD</li>
     <li>Razorpay Tech Spec Template v1.0</li>
@@ -1662,7 +1716,7 @@ sequenceDiagram
     <p>
       This summary document covers problem statement, approach analysis, and the recommended solution.
       For detailed implementation specifications, API contracts, struct definitions, SQL schemas, codebase analysis,
-      and test plans, refer to the <a href="TDS_Payout_Integration_Tech_Spec.html">Full Technical Specification</a>.
+      and test plans, refer to the <a href="TDS_Payout_Integration_Tech_Spec_Comprehensive.html">Full Technical Specification</a>.
     </p>
   </div>
 
