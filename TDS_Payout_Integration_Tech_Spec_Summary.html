@@ -180,49 +180,104 @@
 </head>
 <body>
 
-  <h1>TDS Payout Integration - Technical Specification (Summary)</h1>
+  <h1>TDS Payout Integration for BB+ Platform</h1>
+  <p class="muted" style="font-size:15px;margin-top:4px;">Technical Specification — Summary Document</p>
 
-  <div class="version-info">
-    <div><span>Version:</span> <span>9.0 Summary</span></div>
-    <div><span>Author:</span> <span>Prashant Chauhan</span></div>
-    <div><span>Date:</span> <span>February 2026</span></div>
-  </div>
+  <table style="width:auto;margin:16px 0;">
+    <tbody>
+      <tr><td style="font-weight:600;color:#4a5568;padding:4px 16px 4px 0;border:none;">Author/s</td><td style="border:none;">Prashant Chauhan</td></tr>
+      <tr><td style="font-weight:600;color:#4a5568;padding:4px 16px 4px 0;border:none;">Team/Pod</td><td style="border:none;">Payouts | BU: BB+</td></tr>
+      <tr><td style="font-weight:600;color:#4a5568;padding:4px 16px 4px 0;border:none;">Version</td><td style="border:none;">9.0 Summary</td></tr>
+      <tr><td style="font-weight:600;color:#4a5568;padding:4px 16px 4px 0;border:none;">Published Date</td><td style="border:none;">February 2026</td></tr>
+    </tbody>
+  </table>
 
-  <p class="muted">
-    This document presents a simplified overview of the TDS (Tax Deducted at Source) integration for BB+ payouts.
-    It focuses on the <strong>problem statement</strong>, <strong>three solution approaches</strong>, and the <strong>recommended approach</strong>.
-    Implementation details, code snippets, and detailed technical specifications have been minimized.
-  </p>
+  <table>
+    <thead>
+      <tr><th>Reviewer Name</th><th>Reviewed Date</th><th>Status</th></tr>
+    </thead>
+    <tbody>
+      <tr><td></td><td></td><td>Not started</td></tr>
+      <tr><td></td><td></td><td>Not started</td></tr>
+    </tbody>
+  </table>
 
   <div class="toc">
     <h3>Table of Contents</h3>
     <ul>
-      <li><a href="#overview">1. Overview & Problem Statement</a></li>
-      <li><a href="#approach-1">2. Approach 1: Inline Compute Pattern</a> (Not Recommended)</li>
-      <li><a href="#approach-2">3. Approach 2: Tax-Compliance Orchestrated</a> (Alternative)</li>
-      <li><a href="#approach-3">4. Approach 3: Pre-Compute Pattern</a> <strong>(RECOMMENDED)</strong></li>
-      <li><a href="#comparison">5. Comparison of Approaches</a></li>
-      <li><a href="#recommendation">6. Final Recommendation</a></li>
-      <li><a href="#nfrs">7. Non-Functional Requirements (Summary)</a></li>
-      <li><a href="#security">8. Security & Observability (Summary)</a></li>
+      <li><a href="#problem">1. Problem Statement</a></li>
+      <li><a href="#intro">2. Introduction &amp; Scope</a></li>
+      <li><a href="#out-of-scope">3. Out of Scope</a></li>
+      <li><a href="#future">4. Futuristic Scope</a></li>
+      <li><a href="#goals">5. Assumptions, Goals &amp; Non-Goals</a></li>
+      <li><a href="#domain">6. Domain Design</a></li>
+      <li><a href="#current-arch">7. Current Architecture / Current HLD</a></li>
+      <li><a href="#final-approach">8. Final Approach — Specifications</a>
+        <ul>
+          <li><a href="#solutions">8.1 List of Possible Solutions</a></li>
+          <li><a href="#assumptions">8.2 Assumptions</a></li>
+          <li><a href="#schema">8.5 Data Model / Schema Changes</a></li>
+          <li><a href="#logic">8.6 Business Logic Changes</a></li>
+          <li><a href="#misc">8.7 Miscellaneous Questions</a></li>
+        </ul>
+      </li>
+      <li><a href="#nfrs">9. Non-Functional Requirements (NFRs)</a></li>
+      <li><a href="#agentic">10. Agentic Development Spec</a></li>
+      <li><a href="#dependencies">11. Feature Dependencies &amp; SLAs</a></li>
+      <li><a href="#testing">12. Testing Plan</a></li>
+      <li><a href="#golive">13. Go-Live Plan</a></li>
+      <li><a href="#monitoring">14. Monitoring &amp; Logging</a></li>
+      <li><a href="#milestones">15. Milestones &amp; Timelines</a></li>
+      <li><a href="#glossary">16. Glossary</a></li>
+      <li><a href="#appendix">17. Appendix</a></li>
     </ul>
   </div>
 
   <hr>
 
-  <h2 id="overview">1. Overview & Problem Statement</h2>
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <h2 id="problem">1. Problem Statement</h2>
 
-  <h3>1.1 Business Context: Why TDS Support?</h3>
-  <p>
-    BB+ merchants need to comply with Indian tax regulations when making vendor payments.
-    When TDS (Tax Deducted at Source) applies:
-  </p>
   <ul>
-    <li>Merchant enters a <strong>gross amount</strong> (e.g., ₹10,000)</li>
-    <li>Selects a <strong>TDS category</strong> (e.g., Section 194J - Professional Services at 10%)</li>
-    <li>Optionally applies <strong>Lower Deduction Certificate (LDC)</strong> for reduced rates</li>
-    <li>System calculates TDS amount (₹1,000) and creates a payout for the <strong>net amount</strong> (₹9,000) to the vendor</li>
-    <li>TDS amount is tracked for monthly filing and payment to the government</li>
+    <li>BB+ merchants must comply with Indian tax regulations (TDS) when making vendor payments via Payouts API.</li>
+    <li>The existing Payouts service has <strong>no TDS compute or tracking capability</strong> for BB+ flows.</li>
+    <li>Vendor-Payments already uses Payouts TDS fields — any change must not break that existing flow.</li>
+    <li>TDS deduction amount must be known <em>at payout creation time</em> for correct money routing; it cannot be computed post-creation.</li>
+    <li>The solution must work uniformly across all three payout channels: <strong>Dashboard (UI)</strong>, <strong>Bulk CSV</strong>, and <strong>Direct API</strong>.</li>
+  </ul>
+
+  <hr>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <h2 id="intro">2. Introduction &amp; Scope</h2>
+  <p>
+    This document specifies the technical approach for integrating TDS (Tax Deducted at Source)
+    support into the Payouts service for BB+ merchants. It covers the problem, three candidate
+    approaches, the recommended solution, and all downstream considerations.
+  </p>
+
+  <h3>2.1 Tenets</h3>
+  <ul>
+    <li><strong>Payouts stays dumb about TDS computation</strong> — no S2S call to Tax-Compliance inside the payout creation path.</li>
+    <li><strong>Tax-Compliance owns TDS logic</strong> — computation, validation, entity lifecycle, and filing.</li>
+    <li><strong>Vendor-Payments flows are never impacted</strong> — all BB+ TDS events route to a separate Kafka topic.</li>
+    <li><strong>Backward compatible by default</strong> — all new Payouts fields are optional.</li>
+    <li><strong>No PII in logs or Kafka messages</strong> — PAN stored and encrypted only in Tax-Compliance.</li>
+  </ul>
+
+  <h3>2.2 Relevant Resources</h3>
+  <ul>
+    <li><a href="TDS_Payout_Integration_Tech_Spec.html">Full Technical Specification (detailed implementation)</a></li>
+    <li><a href="https://flanker-23.github.io/bb-plus-tds-tech-spec/">GitHub Pages — Live Spec</a></li>
+  </ul>
+
+  <h3>2.3 Scope</h3>
+  <p>In scope for this initiative:</p>
+  <ul>
+    <li>TDS compute, preview, and payout creation for BB+ merchants — Single Payout (UI), Bulk CSV, and API</li>
+    <li>Payouts service: add TDS fields + Kafka topic routing (source = bb_plus)</li>
+    <li>Tax-Compliance: compute API, Kafka consumer, <code>tds_payments</code> entity creation</li>
+    <li>Tax-Compliance as BFF: preview flow, orchestration for UI/Bulk channels</li>
   </ul>
 
   <h3>1.2 Product Requirement</h3>
@@ -251,7 +306,7 @@
     </p>
   </div>
 
-  <h3>1.3 The Problem</h3>
+  <h3>1.1 Current Problem</h3>
   <div class="warning">
     <h4>Current State</h4>
     <p>
@@ -266,6 +321,63 @@
     </ul>
   </div>
 
+  <hr>
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <h2 id="out-of-scope">3. Out of Scope</h2>
+  <ul>
+    <li>TDS filing, government remittance, or challan generation (owned by Tax-Compliance)</li>
+    <li>Changes to Vendor-Payments TDS flows (must remain untouched)</li>
+    <li>TDS support for non-BB+ merchants in this phase</li>
+    <li>Real-time TDS Payment ID in the payout API response (entity is created asynchronously)</li>
+    <li>LDC staleness enforcement between compute and payout creation (accepted trade-off)</li>
+  </ul>
+
+  <hr>
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <h2 id="future">4. Futuristic Scope</h2>
+  <ul>
+    <li>Expose TDS Payment ID in payout webhook/response (requires sync entity creation)</li>
+    <li>LDC staleness check between compute and payout creation</li>
+    <li>Bulk TDS filing dashboard for BB+ merchants</li>
+    <li>Extend to non-BB+ merchants using the same Pre-Compute Pattern</li>
+    <li>TDS compute caching per merchant/category for performance</li>
+  </ul>
+
+  <hr>
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <h2 id="goals">5. Assumptions, Goals &amp; Non-Goals</h2>
+
+  <h3>5.1 Assumptions</h3>
+  <ul>
+    <li>Tax-Compliance service will expose or enhance a compute API endpoint accessible by BB+ merchants (external) and by Tax-Compliance BFF (internal)</li>
+    <li>Payouts service will not integrate Tax-Compliance — all compute happens outside the payout creation path</li>
+    <li>The Kafka topic <code>add-tds-entry-bb-plus</code> is new and owned by Tax-Compliance consumer</li>
+    <li>The <code>source = "bb_plus"</code> field in the TDS payload is the routing signal — no other routing logic needed in Payouts</li>
+    <li>LDC certificate validity between compute and payout creation is acceptable (seconds gap in practice)</li>
+  </ul>
+
+  <h3>5.2 Goals</h3>
+  <ul>
+    <li>Enable TDS deduction and tracking for BB+ payouts across all three channels</li>
+    <li>Zero latency added to the Payouts API critical path</li>
+    <li>Minimal, isolated changes to Payouts (fields + routing only)</li>
+    <li>Clean domain ownership: Tax-Compliance owns compute and <code>tds_payments</code> entity</li>
+    <li>Backward compatible — existing Payouts and Vendor-Payments flows unchanged</li>
+  </ul>
+
+  <h3>5.3 Non-Goals</h3>
+  <ul>
+    <li>Building TDS compute logic inside the Payouts service</li>
+    <li>Synchronous creation of <code>tds_payments</code> entity at payout creation time</li>
+    <li>Changing any Vendor-Payments Kafka topics or consumer logic</li>
+    <li>Modifying the public <code>/v1/payouts</code> API (changes go to internal <code>/v2/payouts</code> only)</li>
+  </ul>
+
+  <hr>
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <h2 id="domain">6. Domain Design</h2>
+
+  <h3>6.1 Services Involved</h3>
   <h3>1.4 Services Involved</h3>
   <table>
     <thead>
@@ -308,7 +420,7 @@
     </tbody>
   </table>
 
-  <h3>1.4 Amount Relationship</h3>
+  <h3>6.2 Amount Relationship</h3>
   <div class="info">
     <h4>Key Formula</h4>
     <pre><code>Gross Amount = Net Amount + TDS Amount
@@ -319,7 +431,7 @@ Example: Section 194J (10% rate)
   Net Amount (payout to vendor):  ₹9,000</code></pre>
   </div>
 
-  <h3>1.5 Key Entities</h3>
+  <h3>6.3 Key Entities</h3>
   <table>
     <thead>
       <tr>
@@ -347,7 +459,7 @@ Example: Section 194J (10% rate)
     </tbody>
   </table>
 
-  <h3>1.6 Coverage: All Payout Types</h3>
+  <h3>6.4 Coverage: All Payout Types</h3>
   <table>
     <thead>
       <tr>
@@ -376,8 +488,59 @@ Example: Section 194J (10% rate)
   </table>
 
   <hr>
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <h2 id="current-arch">7. Current Architecture / Current HLD</h2>
 
-  <h2 id="approach-1">2. Approach 1: Inline Compute Pattern</h2>
+  <div class="warning">
+    <h4>Current State — No BB+ TDS Support</h4>
+    <p>The Payouts service currently has a <code>tds</code> struct in <code>TDSDetails</code> used exclusively by <strong>Vendor-Payments</strong>. It contains <code>category_id</code> and <code>amount</code>. When a payout with <code>source = vendor_payments</code> reaches a terminal state, Payouts publishes to <code>add-tds-entry</code> Kafka topic, consumed by Vendor-Payments to create a TDS record.</p>
+    <p>There is <strong>no equivalent flow for BB+</strong>. Tax-Compliance has no Kafka consumer for payouts, no TDS compute endpoint used at payout time, and no <code>tds_payments</code> entity creation triggered by payout events.</p>
+  </div>
+
+  <table>
+    <thead>
+      <tr><th>Component</th><th>Current State</th><th>What's Missing for BB+</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Payouts TDS fields</strong></td>
+        <td>category_id + amount (Vendor-Payments only)</td>
+        <td>source, gross_amount, breakdown fields for BB+</td>
+      </tr>
+      <tr>
+        <td><strong>Kafka routing</strong></td>
+        <td>All TDS payouts → <code>add-tds-entry</code></td>
+        <td>BB+ payouts → <code>add-tds-entry-bb-plus</code></td>
+      </tr>
+      <tr>
+        <td><strong>Tax-Compliance</strong></td>
+        <td>Compute API exists for preview; no Kafka consumer for payouts</td>
+        <td>Kafka consumer for <code>add-tds-entry-bb-plus</code> + entity creation</td>
+      </tr>
+      <tr>
+        <td><strong>BFF / UI flow</strong></td>
+        <td>No BB+ TDS payout creation flow</td>
+        <td>Tax-Compliance to orchestrate compute + payout creation for UI/Bulk</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <hr>
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <h2 id="final-approach">8. Final Approach — Specifications</h2>
+
+  <div class="recommendation">
+    <h3>Selected: Approach 3 — Pre-Compute Pattern</h3>
+    <p>
+      Tax-Compliance (BFF) pre-computes TDS <em>before</em> calling Payouts. Payouts receives pre-computed values,
+      stores them as primitive fields, and routes to the correct Kafka topic. Tax-Compliance creates the
+      <code>tds_payments</code> entity asynchronously via Kafka consumer. <strong>Payouts never calls Tax-Compliance.</strong>
+    </p>
+  </div>
+
+  <h2 id="solutions">8.1 List of Possible Solutions</h2>
+
+  <h3 id="approach-1">Approach 1: Inline Compute Pattern (Not Recommended)</h3>
 
   <div class="approach-header">
     <span class="approach-badge badge-not-recommended">Not Recommended</span>
@@ -495,7 +658,7 @@ sequenceDiagram
 
   <hr>
 
-  <h2 id="approach-2">3. Approach 2: Tax-Compliance Orchestrated</h2>
+  <h3 id="approach-2">Approach 2: Tax-Compliance Orchestrated (Alternative)</h3>
 
   <div class="approach-header">
     <span class="approach-badge badge-alternative">Alternative</span>
@@ -616,7 +779,7 @@ sequenceDiagram
 
   <hr>
 
-  <h2 id="approach-3">4. Approach 3: Pre-Compute Pattern (RECOMMENDED)</h2>
+  <h3 id="approach-3">Approach 3: Pre-Compute Pattern — SELECTED</h3>
 
   <div class="approach-header">
     <span class="approach-badge badge-recommended">RECOMMENDED - All Channels</span>
@@ -973,9 +1136,7 @@ sequenceDiagram
 
   <hr>
 
-  <h2 id="comparison">5. Comparison of Approaches</h2>
-
-  <h3>5.1 All Three Approaches</h3>
+  <h3>Comparison of All Three Approaches</h3>
   <table>
     <thead>
       <tr>
@@ -1051,7 +1212,53 @@ sequenceDiagram
 
   <hr>
 
-  <h2 id="recommendation">6. Final Recommendation</h2>
+  <h2 id="assumptions">8.2 Assumptions</h2>
+  <ul>
+    <li>Tax-Compliance compute API will expose a public endpoint for BB+ merchants (Step 1 for API payout channel)</li>
+    <li>The <code>source = "bb_plus"</code> field uniquely identifies BB+ payouts for Kafka routing</li>
+    <li>LDC validity check between compute and payout creation is not enforced in this phase (seconds gap is acceptable)</li>
+    <li>Payouts API version stays at <code>/v2/payouts</code> — all new BB+ fields are optional extensions</li>
+    <li>Tax-Compliance Kafka consumer is idempotent — safe to retry on failure</li>
+  </ul>
+
+  <h2 id="schema">8.5 Data Model / Schema Changes</h2>
+
+  <h3>Payouts — New Fields (Low Blast Radius)</h3>
+  <div class="info">
+    <h4>Storage Split</h4>
+    <ul>
+      <li><strong>Payouts stores:</strong> Primitive fields only — <code>tds_amount</code>, <code>tds_rate</code>, <code>tds_category</code>, <code>payee_pan</code>, <code>source</code> added to <code>payout_details</code> JSON. No new entity, no Tax-Compliance call at creation time.</li>
+      <li><strong>Tax-Compliance stores:</strong> Full <code>tds_payments</code> entity created asynchronously from the Kafka event after payout completion. All audit fields carried in the Kafka message.</li>
+    </ul>
+  </div>
+
+  <table>
+    <thead>
+      <tr><th>Field</th><th>Type</th><th>Owner</th><th>Purpose</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>tds.source</code></td><td>string</td><td>Payouts</td><td>"bb_plus" — Kafka routing indicator</td></tr>
+      <tr><td><code>tds.gross_amount</code></td><td>int64</td><td>Payouts</td><td>Original gross amount before TDS deduction</td></tr>
+      <tr><td><code>tds.amount</code></td><td>float64</td><td>Payouts (existing)</td><td>TDS deduction amount</td></tr>
+      <tr><td><code>tds.breakdown</code></td><td>JSON</td><td>Payouts</td><td>Full breakdown from compute response (basic tax, surcharge, cess, rate)</td></tr>
+      <tr><td><code>tds_payments</code></td><td>entity</td><td>Tax-Compliance</td><td>Full TDS record for government filing (PAN, amounts, category, payout ref)</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Kafka Topic</h3>
+  <table>
+    <thead>
+      <tr><th>Topic</th><th>Publisher</th><th>Consumer</th><th>When</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>add-tds-entry-bb-plus</code> (new)</td><td>Payouts</td><td>Tax-Compliance</td><td>BB+ payout reaches terminal state</td></tr>
+      <tr><td><code>add-tds-entry</code> (existing)</td><td>Payouts</td><td>Vendor-Payments</td><td>Non-BB+ TDS payout (unchanged)</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="logic">8.6 Business Logic Changes</h2>
+
+  <h2 id="recommendation">8.6.2 Final Recommendation Summary</h2>
 
   <div class="recommendation">
     <h3>RECOMMENDED: Approach 3 — Pre-Compute Pattern</h3>
@@ -1071,7 +1278,7 @@ sequenceDiagram
     </ul>
   </div>
 
-  <h3>6.1 Trade-offs Accepted</h3>
+  <h3>8.6.3 Trade-offs Accepted</h3>
   <table>
     <thead>
       <tr>
@@ -1095,7 +1302,15 @@ sequenceDiagram
     </tbody>
   </table>
 
-  <h3>6.2 Implementation Priority</h3>
+  <h2 id="misc">8.7 Miscellaneous Questions</h2>
+  <ul>
+    <li><strong>What if Tax-Compliance compute API is down?</strong> — Preview fails; no new BB+ TDS payouts can be created until it recovers. Existing non-TDS payouts are unaffected.</li>
+    <li><strong>What if Kafka publish fails?</strong> — Outbox pattern ensures at-least-once delivery. <code>tds_payments</code> entity is created on retry.</li>
+    <li><strong>How do we detect payout-to-tds_payment gaps?</strong> — Daily reconciliation job in Tax-Compliance detects BB+ payouts (via Payouts query API) that have no corresponding <code>tds_payments</code> entity.</li>
+    <li><strong>Does Payouts validate the pre-computed tds_amount?</strong> — No. Payouts trusts the caller (Tax-Compliance BFF or API merchant). Validation is the caller's responsibility.</li>
+  </ul>
+
+  <h3>13.1 Production Rollout and Ramp Plan</h3>
   <ol>
     <li><strong>Phase 1:</strong> Payouts service changes (fields + topic routing) - <em>Low risk, high value</em></li>
     <li><strong>Phase 2:</strong> Tax-Compliance compute API + Kafka consumer - <em>Independent of Payouts</em></li>
@@ -1106,55 +1321,27 @@ sequenceDiagram
 
   <hr>
 
-  <h2 id="nfrs">7. Non-Functional Requirements (Summary)</h2>
-
-  <h3>7.1 Performance</h3>
-  <table>
-    <thead>
-      <tr><th>Metric</th><th>Target</th></tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>Tax-Compliance compute API latency</td>
-        <td>&lt; 200ms (p95)</td>
-      </tr>
-      <tr>
-        <td>Payout creation latency (no change)</td>
-        <td>&lt; 500ms (p95)</td>
-      </tr>
-      <tr>
-        <td>Kafka publish to TDS Payment creation</td>
-        <td>&lt; 5 seconds</td>
-      </tr>
-    </tbody>
-  </table>
-
-  <h3>7.2 Throughput</h3>
-  <ul>
-    <li><strong>Single Payouts:</strong> Support existing payout throughput (no degradation)</li>
-    <li><strong>Bulk Payouts:</strong> Support up to 10,000 rows per CSV file</li>
-    <li><strong>Compute API:</strong> Handle peak load during bulk processing</li>
-  </ul>
-
-  <h3>7.3 Availability</h3>
-  <ul>
-    <li><strong>Tax-Compliance compute API:</strong> 99.9% uptime</li>
-    <li><strong>Kafka consumer:</strong> Automatic retry with DLQ for failed messages</li>
-    <li><strong>Graceful degradation:</strong> If compute API down, preview fails but old payouts (without TDS) continue to work</li>
-  </ul>
-
-  <h3>7.4 Data Retention</h3>
-  <ul>
-    <li><strong>Payout details (TDS fields):</strong> Retained per existing payout retention policy (7+ years for compliance)</li>
-    <li><strong>TDS Payment entities:</strong> Retained indefinitely for tax filing and audit</li>
-    <li><strong>Kafka messages:</strong> 7 days retention minimum</li>
-  </ul>
-
   <hr>
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <h2 id="nfrs">9. Non-Functional Requirements (NFRs)</h2>
 
-  <h2 id="security">8. Security & Observability (Summary)</h2>
+  <h3>9.1 Scalability</h3>
+  <ul>
+    <li>Single Payouts: no degradation to existing throughput — Payouts change is additive (new fields only)</li>
+    <li>Bulk Payouts: support up to 10,000 rows per CSV file; Tax-Compliance computes TDS per row before any payout is created</li>
+    <li>Tax-Compliance compute API: must handle peak load during bulk processing concurrently</li>
+  </ul>
 
-  <h3>8.1 Security</h3>
+  <h3>9.2 Availability</h3>
+  <ul>
+    <li>Tax-Compliance compute API: 99.9% uptime target</li>
+    <li>Graceful degradation: if compute API is down, preview fails; Payouts creation of non-TDS payouts is unaffected</li>
+    <li>Kafka consumer: automatic retry with exponential backoff; DLQ after max retries</li>
+    <li>Payout creation latency target: &lt; 500ms p95 (no change from current)</li>
+    <li>TDS Payment creation (async): Kafka publish → entity creation &lt; 5 seconds</li>
+  </ul>
+
+  <h3>9.3 Security</h3>
   <table>
     <thead>
       <tr><th>Aspect</th><th>Implementation</th></tr>
@@ -1191,6 +1378,133 @@ sequenceDiagram
       </tr>
     </tbody>
   </table>
+
+  <h3>9.4 Compliance</h3>
+  <ul>
+    <li>TDS Payment entities retained indefinitely for tax filing and audit</li>
+    <li>Payout details (TDS fields) retained per existing Payouts retention policy (7+ years)</li>
+    <li>Kafka messages: minimum 7-day retention</li>
+    <li>PAN data: encrypted at rest in Tax-Compliance; never stored in Payouts or Kafka messages</li>
+  </ul>
+
+  <h3>9.5 Reliability</h3>
+  <ul>
+    <li>Outbox pattern for Kafka publish — at-least-once delivery guaranteed</li>
+    <li>Daily reconciliation job: detect BB+ payouts with no corresponding <code>tds_payments</code> entity and alert ops</li>
+    <li>Payouts → Tax-Compliance are fully decoupled — failure in Tax-Compliance does not affect payout creation</li>
+  </ul>
+
+  <h3>9.6 Infra Cost</h3>
+  <ul>
+    <li>New Kafka topic: minimal cost (messages are lightweight)</li>
+    <li>Additional Tax-Compliance Kafka consumer: standard pod sizing</li>
+    <li>No new database tables in Payouts — storage via existing <code>payout_details</code> JSON column</li>
+  </ul>
+
+  <hr>
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <h2 id="agentic">10. Agentic Development Spec — Agentic SDLC <span style="color:#c53030;font-size:13px;">[Mandatory]</span></h2>
+
+  <h3>10.1 Agent Objective</h3>
+  <p>Implement the Pre-Compute Pattern (Approach 3) end-to-end across the Payouts and Tax-Compliance services. "Done" means: BB+ merchants can create TDS payouts via UI, Bulk CSV, and API; <code>tds_payments</code> entities are created in Tax-Compliance; Vendor-Payments flows are unaffected.</p>
+
+  <h3>10.2 Repositories in Scope</h3>
+  <table>
+    <thead><tr><th>Repo</th><th>Purpose</th><th>Branch Strategy</th></tr></thead>
+    <tbody>
+      <tr><td>razorpay/vendor-payments (Payouts service)</td><td>Add TDS fields + Kafka routing</td><td>Feature branch off main</td></tr>
+      <tr><td>razorpay/tax-compliance</td><td>Compute API + Kafka consumer + tds_payments entity</td><td>Feature branch off main</td></tr>
+    </tbody>
+  </table>
+
+  <h3>10.3 Detailed Implementation Spec</h3>
+  <p>See <a href="TDS_Payout_Integration_Tech_Spec.html">Full Technical Specification — Section 11: Codebase Analysis &amp; Implementation Plan</a> for file-level changes, API contracts, struct definitions, and sequence of operations.</p>
+
+  <h3>10.4 Success Criteria</h3>
+  <ul>
+    <li>Both repos boot in devstack without errors</li>
+    <li>All unit tests pass (Payouts + Tax-Compliance)</li>
+    <li>E2E: BB+ single payout with TDS → <code>tds_payments</code> entity created in Tax-Compliance</li>
+    <li>E2E: Bulk CSV with TDS → all rows processed, entities created</li>
+    <li>E2E: API merchant flow (compute → create payout) → entity created</li>
+    <li>Vendor-Payments E2E tests pass (no regression)</li>
+  </ul>
+
+  <h3>10.5 Test Requirements</h3>
+  <table>
+    <thead><tr><th>Test Type</th><th>Scope</th><th>Location</th></tr></thead>
+    <tbody>
+      <tr><td>Unit Tests</td><td>TDS field handling, Kafka routing logic in Payouts; compute API, consumer in Tax-Compliance</td><td>Per repo</td></tr>
+      <tr><td>Integration Tests</td><td>Payouts → Kafka → Tax-Compliance consumer</td><td>Cross-service</td></tr>
+      <tr><td>E2E Tests</td><td>Full flow per channel (UI, Bulk, API)</td><td>Devstack</td></tr>
+      <tr><td>Regression</td><td>Vendor-Payments TDS flows unchanged</td><td>Existing suite</td></tr>
+    </tbody>
+  </table>
+
+  <h3>10.6 Constraints &amp; Guardrails</h3>
+  <ul>
+    <li>Do not modify <code>add-tds-entry</code> Kafka topic or its consumer (Vendor-Payments)</li>
+    <li>All new Payouts fields must be optional (backward compatibility)</li>
+    <li>No PAN in Kafka messages or Payouts logs</li>
+    <li>Follow existing Payouts and Tax-Compliance coding standards</li>
+  </ul>
+
+  <h3>10.7 Spec Location</h3>
+  <p>Detailed implementation spec: <code>specs/tds-payout-bb-plus.md</code> in the Tax-Compliance repository (first deliverable before any code).</p>
+
+  <hr>
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <h2 id="dependencies">11. Feature Dependencies &amp; SLAs</h2>
+
+  <h3>11.1 Upstream Dependencies</h3>
+  <table>
+    <thead><tr><th>Sr. No.</th><th>Service</th><th>Impact</th><th>SLA</th><th>POC</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>Tax-Compliance Compute API</td><td>Required for TDS compute before payout creation</td><td>99.9% / &lt;200ms p95</td><td>Tax-Compliance team</td></tr>
+      <tr><td>2</td><td>Payouts API (/v2/payouts)</td><td>Extended with new TDS fields</td><td>Existing SLA unchanged</td><td>Payouts team</td></tr>
+    </tbody>
+  </table>
+
+  <h3>11.2 Downstream Dependencies</h3>
+  <table>
+    <thead><tr><th>Sr. No.</th><th>Service</th><th>Impact</th><th>SLA</th><th>POC</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>Tax-Compliance Kafka Consumer</td><td>Creates tds_payments entity from Kafka event</td><td>&lt;5s p95</td><td>Tax-Compliance team</td></tr>
+      <tr><td>2</td><td>Vendor-Payments</td><td>No impact — existing topic/consumer unchanged</td><td>—</td><td>Vendor-Payments team</td></tr>
+      <tr><td>3</td><td>Data Hub / Analytics</td><td>New TDS fields in payout_details JSON; new tds_payments entity</td><td>—</td><td>Analytics team</td></tr>
+    </tbody>
+  </table>
+
+  <hr>
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <h2 id="testing">12. Testing Plan</h2>
+
+  <h3>12.1 Test Cases</h3>
+  <ul>
+    <li>BB+ single payout with TDS: verify <code>tds_payments</code> entity created after payout processed</li>
+    <li>BB+ payout without TDS: no <code>tds_payments</code> entity, no event on BB+ topic</li>
+    <li>Vendor-Payments TDS payout: unchanged routing to <code>add-tds-entry</code></li>
+    <li>Kafka consumer failure → retry → DLQ</li>
+    <li>Bulk CSV: 1000-row file — all rows produce correct TDS payouts and entities</li>
+    <li>API payout: merchant calls compute → payout → entity created correctly</li>
+    <li>LDC applied: verify effective rate and breakdown stored correctly</li>
+  </ul>
+
+  <h3>12.2 UAT Testing</h3>
+  <p>BB+ merchant UAT on staging: create TDS payout via UI, verify TDS breakdown preview, confirm payout, verify <code>tds_payments</code> entity accessible via Tax-Compliance query API.</p>
+
+  <h3>12.3 Performance / Load Testing</h3>
+  <ul>
+    <li>Bulk CSV: 10,000 rows — end-to-end processing time &lt; 30 minutes</li>
+    <li>Tax-Compliance compute API: 500 concurrent requests — p95 &lt; 200ms</li>
+    <li>Kafka consumer throughput: 1,000 messages/min sustained — lag &lt; 100 messages</li>
+  </ul>
+
+  <hr>
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <h2 id="golive">13. Go-Live Plan</h2>
+
+  <h3>13.1 Production Rollout and Ramp Plan</h3>
 
   <h3>8.2 Observability</h3>
   <table>
@@ -1242,7 +1556,21 @@ sequenceDiagram
     </tbody>
   </table>
 
-  <h3>8.3 Error Handling</h3>
+  <h3>13.2 Backward Compatibility</h3>
+  <p>All new Payouts fields are optional. Existing <code>/v2/payouts</code> calls without TDS fields continue to work exactly as before. Vendor-Payments flows are unaffected.</p>
+
+  <h3>13.3 Rollback Plan</h3>
+  <ul>
+    <li>Feature flag to disable BB+ Kafka routing — falls back to no-op (no <code>tds_payments</code> entity created)</li>
+    <li>New fields in Payouts are additive — rollback is deploy of previous version with no data loss</li>
+    <li>Tax-Compliance Kafka consumer can be stopped independently with no Payouts impact</li>
+  </ul>
+
+  <hr>
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <h2 id="monitoring">14. Monitoring &amp; Logging</h2>
+
+  <h3>14.1 Error Handling</h3>
   <ul>
     <li><strong>Compute API errors:</strong> Return clear error messages (e.g., invalid category, PAN not found, LDC expired)</li>
     <li><strong>Payout creation errors:</strong> Same as existing payout errors (no change)</li>
@@ -1252,13 +1580,59 @@ sequenceDiagram
   </ul>
 
   <hr>
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <h2 id="milestones">15. Milestones &amp; Timelines</h2>
+
+  <table>
+    <thead>
+      <tr><th>Sr. No.</th><th>Milestone</th><th>Owner</th><th>Due Date</th><th>Status</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>1</td><td>Phase 1: Payouts fields + Kafka routing</td><td></td><td>TBD</td><td>Not Started</td></tr>
+      <tr><td>2</td><td>Phase 2: Tax-Compliance compute API + Kafka consumer</td><td></td><td>TBD</td><td>Not Started</td></tr>
+      <tr><td>3</td><td>Phase 3: Tax-Compliance BFF — UI single payout flow</td><td></td><td>TBD</td><td>Not Started</td></tr>
+      <tr><td>4</td><td>Phase 4: Bulk CSV integration</td><td></td><td>TBD</td><td>Not Started</td></tr>
+      <tr><td>5</td><td>Phase 5: API documentation + external merchant guide</td><td></td><td>TBD</td><td>Not Started</td></tr>
+    </tbody>
+  </table>
+
+  <hr>
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <h2 id="glossary">16. Glossary</h2>
+
+  <table>
+    <thead><tr><th>Term</th><th>Definition</th></tr></thead>
+    <tbody>
+      <tr><td><strong>TDS</strong></td><td>Tax Deducted at Source — a form of advance tax collected by the payer at the time of payment</td></tr>
+      <tr><td><strong>BB+</strong></td><td>Business Banking Plus — Razorpay's platform for business payouts and compliance</td></tr>
+      <tr><td><strong>BFF</strong></td><td>Backend For Frontend — in this context, Tax-Compliance acts as the BFF for the BB+ payout UI</td></tr>
+      <tr><td><strong>LDC</strong></td><td>Lower Deduction Certificate — allows a reduced TDS rate certified by tax authorities</td></tr>
+      <tr><td><strong>Pre-Compute Pattern</strong></td><td>TDS is computed before the payout creation call; Payouts receives pre-computed values</td></tr>
+      <tr><td><strong>Gross Amount</strong></td><td>Total payment before TDS deduction (e.g., ₹10,000)</td></tr>
+      <tr><td><strong>Net Amount</strong></td><td>Amount actually transferred to vendor after TDS (e.g., ₹9,000)</td></tr>
+      <tr><td><strong>tds_payments entity</strong></td><td>Tax-Compliance record for a TDS deduction event used for government filing</td></tr>
+      <tr><td><strong>source = bb_plus</strong></td><td>Routing indicator in the TDS payload that directs Payouts to publish to the BB+ Kafka topic</td></tr>
+      <tr><td><strong>DLQ</strong></td><td>Dead Letter Queue — Kafka queue for messages that failed after max retries</td></tr>
+    </tbody>
+  </table>
+
+  <hr>
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <h2 id="appendix">17. Appendix</h2>
+  <ul>
+    <li><a href="TDS_Payout_Integration_Tech_Spec.html">Full Technical Specification</a> — API contracts, Go struct changes, SQL schemas, codebase reference, test plans</li>
+    <li><a href="https://flanker-23.github.io/bb-plus-tds-tech-spec/">GitHub Pages — Live Docs</a></li>
+    <li><a href="https://razorpay.atlassian.net/">JIRA / Asana Project Tracker</a> — TBD</li>
+    <li>Razorpay Tech Spec Template v1.0</li>
+    <li>Format and Structure Your Doc — Shashank Kumar, Dec 2020</li>
+  </ul>
 
   <div class="info">
-    <h4>Document Purpose</h4>
+    <h4>Note</h4>
     <p>
-      This summary document provides a high-level overview of the TDS integration problem and solution approaches.
-      For detailed implementation specifications, API contracts, struct definitions, SQL schemas, test plans,
-      and code examples, please refer to the full technical specification document.
+      This summary document covers problem statement, approach analysis, and the recommended solution.
+      For detailed implementation specifications, API contracts, struct definitions, SQL schemas, codebase analysis,
+      and test plans, refer to the <a href="TDS_Payout_Integration_Tech_Spec.html">Full Technical Specification</a>.
     </p>
   </div>
 
