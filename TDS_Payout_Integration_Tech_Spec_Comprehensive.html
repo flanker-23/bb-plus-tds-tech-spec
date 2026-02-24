@@ -487,30 +487,29 @@
 
   <p class="muted">
     Technical specification for integrating TDS (Tax Deducted at Source) into the BB+ payout flow.
-    Three approaches analyzed: <strong>Approach 1</strong> (Payout API accepts TDS compute inputs, calls compute internally),
-    <strong>Approach 2</strong> (Tax-Compliance orchestrates TDS + Payout creation),
-    and <strong>Approach 3: Pre-Compute Pattern</strong> (BFF pre-computes, Payouts receives pre-computed values — <strong>RECOMMENDED</strong>).
+    Three approaches analyzed: <strong>Approach 1: Enrichment Hook</strong> (Payout API accepts optional TDS fields, calls Tax-Compliance enrichment internally — <strong>RECOMMENDED</strong>),
+    <strong>Approach 2: TC Gateway</strong> (Tax-Compliance exposes payout endpoint, orchestrates TDS + Payout),
+    and <strong>Approach 3: Pre-Compute</strong> (Caller pre-computes TDS, passes values to Payouts — requires two API calls).
   </p>
 
   <div class="toc">
     <h3>Table of Contents</h3>
     <ul>
       <li><a href="#overview">1. Overview</a> (1.1–1.8)</li>
-      <li><a href="#approach-1">2. Approach 1: Extended TDS Field with Inline Compute</a> (Not Recommended)
+      <li><a href="#approach-1">2. Approach 1: Enrichment Hook Pattern</a> <strong>(RECOMMENDED)</strong>
         <ul>
-          <li>2.1 Flow Diagram</li>
-          <li>2.2 Implementation Details</li>
-          <li>2.3 Pros and Cons</li>
+          <li>2.1 Core Principle</li>
+          <li>2.2 Flow Diagram</li>
+          <li>2.3 Implementation Details</li>
+          <li>2.4 Pros and Cons</li>
         </ul>
       </li>
-      <li><a href="#approach-2">3. Approach 2: Pre-Create TDS Payment Entity</a> (Alternative)</li>
-      <li><a href="#approach-3">4. Approach 3: Pre-Compute Pattern</a> <strong>(RECOMMENDED)</strong>
+      <li><a href="#approach-2">3. Approach 2: TC Gateway</a> (Not Recommended)</li>
+      <li><a href="#approach-3">4. Approach 3: Pre-Compute Pattern</a> (Alternative - Two API Calls)
         <ul>
-          <li>4.1 Core Principle</li>
-          <li>4.2 Architecture &amp; Flow Diagram</li>
-          <li>4.3 API Design (No New Version)</li>
-          <li>4.4 Implementation Details</li>
-          <li>4.5 Pros and Cons</li>
+          <li>4.1 How It Works</li>
+          <li>4.2 Flow Diagram</li>
+          <li>4.3 Trade-offs</li>
         </ul>
       </li>
       <li><a href="#comparison">5. Comparison</a></li>
@@ -519,7 +518,7 @@
       <li><a href="#data-models">8. Data Models</a></li>
       <li><a href="#review">9. Open Questions</a></li>
       <li><a href="#bulk-payouts">10. Bulk Payout Considerations</a></li>
-      <li><a href="#code-references">11. Codebase Analysis &amp; Implementation Plan</a> (Updated for Approach 3)
+      <li><a href="#code-references">11. Codebase Analysis &amp; Implementation Plan</a> (Updated for Approach 1 - Enrichment Hook)
         <ul>
           <li>11.1 Current State</li>
           <li>11.2 Required Struct Changes (Minimal)</li>
@@ -837,23 +836,20 @@ Example: category 194J, rate 10%
     </tbody>
   </table>
 
-  <h3 id="approach-coverage">1.9 Channel Coverage (All → Approach 3)</h3>
+  <h3 id="approach-coverage">1.9 Channel Coverage (All → Approach 1: Enrichment Hook)</h3>
 
-  <div class="warning">
-    <h4>API Payouts — Core Design Concern</h4>
+  <div class="info">
+    <h4>Unified Solution for All Payout Types</h4>
     <p>
-      In Dashboard and Bulk flows, TDS compute values are available <strong>before</strong> the payout request —
-      Tax-Compliance (BFF) computes and passes them in. For direct <strong>API Payouts</strong>, the merchant only
-      has raw inputs (category, PAN, gross amount) — TDS values are not yet available.
+      The <strong>Enrichment Hook Pattern</strong> provides a single, unified approach for all payout types.
+      Merchants call Payouts API with optional TDS fields (<code>tds_category_id</code>, <code>apply_ldc</code>).
+      If TDS fields are present, Payouts makes a lightweight synchronous call (~50-100ms) to Tax-Compliance
+      enrichment endpoint to compute TDS.
     </p>
     <p>
-      <strong>If Payouts calls Tax-Compliance synchronously</strong> to resolve this: +~200ms latency, availability coupling
-      (Payouts fails if Tax-Compliance is down), high blast radius in Payouts. This is <strong>rejected</strong>.
-    </p>
-    <p>
-      <strong>Adopted solution:</strong> Tax-Compliance exposes a public compute API. API merchants call compute first,
-      then create the payout with pre-computed values. Payouts <em>never</em> integrates Tax-Compliance.
-      Same two-step pattern as Dashboard/Bulk (just surfaced to the merchant for API flows).
+      <strong>Benefits:</strong> Single API call for merchants, minimal Payouts changes (~20 LOC hook),
+      no domain leak, works for Dashboard/Bulk/API uniformly. Latency impact is isolated to TDS payouts only
+      and mitigated via timeouts, circuit breakers, and horizontal scaling of Tax-Compliance.
     </p>
   </div>
 
@@ -861,33 +857,33 @@ Example: category 194J, rate 10%
     <thead>
       <tr>
         <th>Channel</th>
-        <th>TDS values at payout request?</th>
+        <th>How It Works</th>
         <th>Who computes TDS?</th>
-        <th>Payout API called by</th>
+        <th>API Calls</th>
         <th>Approach</th>
       </tr>
     </thead>
     <tbody>
       <tr>
-        <td><strong>BB+ UI (Single)</strong></td>
-        <td class="pro">YES — preview shown to user before confirm</td>
-        <td>Tax-Compliance (BFF)</td>
-        <td>Tax-Compliance (BFF)</td>
-        <td><strong>Approach 3</strong></td>
+        <td><strong>Dashboard (Single)</strong></td>
+        <td>UI calls Payouts with TDS fields → Enrichment hook triggers → Payout created</td>
+        <td>Tax-Compliance (via enrichment endpoint)</td>
+        <td class="pro">1 call to Payouts</td>
+        <td><strong>Approach 1</strong></td>
       </tr>
       <tr>
-        <td><strong>BB+ Bulk CSV</strong></td>
-        <td class="pro">YES — computed per row, preview before confirm</td>
-        <td>Tax-Compliance (BFF)</td>
-        <td>Tax-Compliance (BFF)</td>
-        <td><strong>Approach 3</strong></td>
+        <td><strong>Bulk CSV</strong></td>
+        <td>For each row: Call Payouts with TDS fields → Enrichment hook → Payout created</td>
+        <td>Tax-Compliance (via enrichment endpoint)</td>
+        <td class="pro">1 call per row to Payouts</td>
+        <td><strong>Approach 1</strong></td>
       </tr>
       <tr>
         <td><strong>Merchant API</strong></td>
-        <td class="con">NO — merchant has raw inputs only</td>
-        <td>Merchant calls Tax-Compliance compute API</td>
-        <td>Merchant (with pre-computed values)</td>
-        <td><strong>Approach 3</strong></td>
+        <td>Merchant calls Payouts with TDS fields → Enrichment hook → Payout created</td>
+        <td>Tax-Compliance (via enrichment endpoint)</td>
+        <td class="pro">1 call to Payouts</td>
+        <td><strong>Approach 1</strong></td>
       </tr>
     </tbody>
   </table>
@@ -895,7 +891,7 @@ Example: category 194J, rate 10%
   <div class="info">
     <h4>Storage Split</h4>
     <ul>
-      <li><strong>Payouts:</strong> Stores only primitive fields on the payout row — <code>tds_amount</code>, <code>tds_rate</code>, <code>tds_category</code>, <code>payee_pan</code>, <code>source</code>. No new entity, no Tax-Compliance call at creation time.</li>
+      <li><strong>Payouts:</strong> Stores payout with net_amount + metadata fields — <code>tds_payment_id</code>, <code>tds_amount</code>, <code>tds_rate</code>, <code>category_id</code>. No new entity in Payouts.</li>
       <li><strong>Tax-Compliance:</strong> Creates the full <code>tds_payments</code> entity asynchronously from the Kafka event after payout completion. All audit fields are carried in the Kafka message.</li>
     </ul>
   </div>
@@ -914,7 +910,7 @@ Example: category 194J, rate 10%
 
   <hr>
 
-  <h2 id="approach-1">2. Approach 1: Extended TDS Field with Inline Compute (Post-Payout Processing)</h2>
+  <h2 id="approach-1">2. Approach 1: Enrichment Hook Pattern (RECOMMENDED)</h2>
 
   <div class="approach-header">
     <span class="approach-badge badge-alternative">Not Recommended</span>
@@ -930,7 +926,7 @@ Example: category 194J, rate 10%
       <li><strong>Amount mutation:</strong> <code>params.Amount</code> gets overwritten from gross to net (high risk)</li>
       <li><strong>Testing complexity:</strong> Need to mock Tax-Compliance in all payout tests</li>
     </ul>
-    <p>See <strong>Approach 3 (Pre-Compute Pattern)</strong> for the recommended alternative.</p>
+    <p>See <strong>Approach 1 (Enrichment Hook Pattern)</strong> for the recommended solution.</p>
   </div>
 
   <div class="info" style="margin: 12px 0;">
@@ -1031,7 +1027,7 @@ sequenceDiagram
 
   <hr>
 
-  <h2 id="approach-2">3. Approach 2: Pre-Create TDS Payment Entity</h2>
+  <h2 id="approach-2">3. Approach 2: Tax-Compliance Gateway Pattern (Not Recommended)</h2>
 
   <div class="approach-header">
     <span class="approach-badge badge-alternative">Alternative</span>
@@ -1218,7 +1214,7 @@ sequenceDiagram
   <!-- APPROACH 3: PRE-COMPUTE PATTERN (RECOMMENDED)                                        -->
   <!-- ═══════════════════════════════════════════════════════════════════════════════════ -->
 
-  <h2 id="approach-3">4. Approach 3: Pre-Compute Pattern (RECOMMENDED)</h2>
+  <h2 id="approach-3">4. Approach 3: Pre-Compute Pattern (Alternative - Two API Calls)</h2>
 
   <div class="approach-header">
     <span class="approach-badge badge-recommended">RECOMMENDED — All Channels</span>
@@ -1619,51 +1615,63 @@ func (c Core) ProcessTdsForPayout(ctx context.Context, payout *Payout, oldStatus
     <thead>
       <tr>
         <th>Criteria</th>
-        <th>Approach 1: Inline Compute</th>
-        <th>Approach 2: Tax-Compliance Orchestrated</th>
-        <th style="background:#c6f6d5;">Approach 3: Pre-Compute (RECOMMENDED)</th>
+        <th style="background:#c6f6d5;">Approach 1: Enrichment Hook (RECOMMENDED)</th>
+        <th>Approach 2: TC Gateway</th>
+        <th>Approach 3: Pre-Compute</th>
       </tr>
     </thead>
     <tbody>
       <tr>
+        <td><strong>Merchant API calls</strong></td>
+        <td class="pro" style="background:#f0fff4;"><strong>1 call (Payouts)</strong></td>
+        <td class="con">1 call (Tax-Compliance)</td>
+        <td class="con">2 calls (Tax then Payouts)</td>
+      </tr>
+      <tr>
         <td><strong>S2S call in payout creation</strong></td>
-        <td class="con">Yes — blocking</td>
+        <td class="con">Yes — optional (Payouts→Tax)</td>
         <td class="con">Yes — reversed (Tax→Payouts)</td>
-        <td class="pro" style="background:#f0fff4;"><strong>No</strong></td>
+        <td class="pro"><strong>No</strong></td>
       </tr>
       <tr>
         <td><strong>Latency added to payout API</strong></td>
-        <td class="con">+50-200ms</td>
-        <td class="con">+50-200ms</td>
-        <td class="pro" style="background:#f0fff4;"><strong>0ms</strong></td>
+        <td class="con">+50-100ms (TDS payouts only)</td>
+        <td class="con">+50-100ms</td>
+        <td class="pro"><strong>0ms (but 2 API calls)</strong></td>
       </tr>
       <tr>
         <td><strong>Payouts fails if Tax-Compliance down</strong></td>
+        <td class="con">Yes (mitigated via circuit breaker)</td>
         <td class="con">Yes</td>
-        <td class="con">Yes</td>
-        <td class="pro" style="background:#f0fff4;"><strong>No</strong></td>
-      </tr>
-      <tr>
-        <td><strong>Amount mutation in Payouts</strong></td>
-        <td class="con">Yes (gross→net)</td>
-        <td class="pro">No</td>
-        <td class="pro" style="background:#f0fff4;"><strong>No</strong></td>
+        <td class="pro"><strong>No</strong></td>
       </tr>
       <tr>
         <td><strong>Payouts code changes</strong></td>
-        <td class="con">High (client, logic)</td>
-        <td class="pro">Minimal (just ID)</td>
-        <td class="pro" style="background:#f0fff4;"><strong>Low (fields + routing)</strong></td>
+        <td class="pro" style="background:#f0fff4;"><strong>~20 LOC hook</strong></td>
+        <td class="pro">Minimal</td>
+        <td class="pro">Low (fields only)</td>
       </tr>
       <tr>
         <td><strong>Domain separation</strong></td>
-        <td class="con">Leaks to Payouts</td>
-        <td class="con">Leaks to Tax-Compliance</td>
-        <td class="pro" style="background:#f0fff4;"><strong>Clean</strong></td>
+        <td class="pro" style="background:#f0fff4;"><strong>Clean (no TDS logic)</strong></td>
+        <td class="con">Tax owns payout orchestration</td>
+        <td class="pro">Clean</td>
+      </tr>
+      <tr>
+        <td><strong>One-stop solution</strong></td>
+        <td class="pro" style="background:#f0fff4;"><strong>YES</strong></td>
+        <td class="con">Wrong API endpoint</td>
+        <td class="con">NO (2 calls)</td>
+      </tr>
+      <tr>
+        <td><strong>TDS entity created</strong></td>
+        <td class="pro" style="background:#f0fff4;"><strong>Synchronously</strong></td>
+        <td class="pro">Synchronously</td>
+        <td class="con">Asynchronously</td>
       </tr>
       <tr>
         <td><strong>Testing complexity</strong></td>
-        <td class="con">High (mock Tax-Compliance)</td>
+        <td class="con">Medium (mock Tax-Compliance)</td>
         <td class="con">High (mock Payouts)</td>
         <td class="pro" style="background:#f0fff4;"><strong>Low</strong></td>
       </tr>
@@ -1783,26 +1791,26 @@ func (c Core) ProcessTdsForPayout(ctx context.Context, payout *Payout, oldStatus
   <h2 id="recommendation">6. Recommendation</h2>
 
   <div class="recommendation">
-    <h3>RECOMMENDED: Approach 3 — Pre-Compute Pattern</h3>
-    <p><strong>Approach 3 is the recommended solution.</strong></p>
+    <h3>RECOMMENDED: Approach 1 — Enrichment Hook Pattern</h3>
+    <p><strong>Approach 1 (Enrichment Hook) is the recommended solution for all payout types.</strong></p>
     <p><strong>Rationale:</strong></p>
     <ul>
-      <li><strong>Zero latency added to payout API:</strong> No S2S call in the critical path. Compute happens before payout creation.</li>
-      <li><strong>Minimal Payouts changes:</strong> Only add optional fields to TDSDetails + Kafka topic routing. No core logic changes.</li>
-      <li><strong>No API version change:</strong> Extend existing <code>/v2/payouts</code> with optional fields. No breaking changes.</li>
-      <li><strong>Domain separation:</strong> Payouts remains "dumb" about TDS computation. Tax-Compliance owns all compute logic.</li>
-      <li><strong>Failure decoupling:</strong> If Tax-Compliance is down, only preview fails — not payout creation.</li>
-      <li><strong>Easy testing:</strong> No need to mock Tax-Compliance in Payouts tests.</li>
-      <li><strong>Same pattern as Vendor-Payments:</strong> Follows the existing proven pattern.</li>
-      <li><strong>Works for all channels:</strong> UI (single payout), Bulk (CSV), and future API exposure.</li>
+      <li><strong>One-stop solution:</strong> Merchants make single API call to Payouts with optional TDS fields. Enrichment happens internally.</li>
+      <li><strong>Minimal Payouts changes:</strong> ~20 LOC enrichment hook. Feature-flagged. Isolated code path. Zero impact on non-TDS payouts.</li>
+      <li><strong>No API version change:</strong> Extend existing <code>/v1/payouts</code> with optional TDS fields (<code>tds_category_id</code>, <code>apply_ldc</code>). Backward compatible.</li>
+      <li><strong>Clean domain separation:</strong> Payouts doesn't own TDS computation logic. Just calls Tax-Compliance enrichment service.</li>
+      <li><strong>TDS entity available immediately:</strong> Created synchronously during enrichment. tds_payment_id returned in payout response.</li>
+      <li><strong>Works for all channels:</strong> Dashboard, Bulk CSV, and API payouts use same unified flow.</li>
+      <li><strong>Acceptable latency:</strong> +50-100ms for TDS payouts only. Lightweight enrichment operation (compute + DB insert).</li>
+      <li><strong>Scalable:</strong> Tax-Compliance enrichment can be horizontally scaled. Timeouts and circuit breakers for resilience.</li>
     </ul>
   </div>
 
-  <div class="warning">
-    <h4>When to Consider Other Approaches</h4>
+  <div class="info">
+    <h4>Trade-offs Accepted</h4>
     <ul>
-      <li><strong>Approach 1 (Inline Compute):</strong> If having a single API call is critical and latency is acceptable.</li>
-      <li><strong>Approach 2 (Tax-Compliance Orchestrated):</strong> If synchronous TDS Payment ID in the API response is a hard requirement.</li>
+      <li><strong>Latency:</strong> +50-100ms for TDS payouts (isolated to TDS flows; non-TDS payouts unaffected)</li>
+      <li><strong>Sync dependency:</strong> Payout creation depends on Tax-Compliance enrichment availability (mitigated via timeouts, circuit breakers, horizontal scaling)</li>
     </ul>
   </div>
 
@@ -1822,51 +1830,54 @@ func (c Core) ProcessTdsForPayout(ctx context.Context, payout *Payout, oldStatus
         <td><strong>Payouts</strong></td>
         <td>
           <ul>
-            <li>Add <code>Source</code>, <code>GrossAmount</code>, <code>Breakdown</code> to TDSDetails</li>
-            <li>Add BB+ fields to AdditionalInfoStruct</li>
-            <li>Add topic routing in <code>ProcessTdsForPayout()</code></li>
+            <li>Add enrichment hook (~20 LOC) before payout creation</li>
+            <li>Add optional TDS fields to API: <code>tds_category_id</code>, <code>apply_ldc</code></li>
+            <li>Call Tax-Compliance <code>/internal/tds/enrich</code> if TDS fields present</li>
+            <li>Store metadata: <code>tds_payment_id</code>, <code>tds_amount</code>, <code>tds_rate</code></li>
+            <li>Add feature flag for gradual rollout</li>
+            <li>Add timeout and circuit breaker for enrichment call</li>
           </ul>
         </td>
-        <td style="color:#16a34a;"><strong>Low</strong></td>
-        <td style="color:#16a34a;"><strong>Low</strong></td>
+        <td style="color:#16a34a;"><strong>Low (~20 LOC)</strong></td>
+        <td style="color:#16a34a;"><strong>Low (isolated hook)</strong></td>
       </tr>
       <tr>
         <td><strong>Tax-Compliance</strong></td>
         <td>
           <ul>
-            <li>Build <code>POST /v1/tds/compute</code> endpoint (if not exists)</li>
-            <li>Implement TDS rate lookup and LDC application</li>
-            <li>Build Kafka consumer for <code>add-tds-entry-bb-plus</code></li>
-            <li>Create TDS Payment records from Kafka messages</li>
+            <li>Build <code>POST /internal/tds/enrich</code> endpoint</li>
+            <li>Compute TDS, create tds_payments entity (status: PENDING)</li>
+            <li>Return enriched data: net_amount, tds_amount, rate, tds_payment_id</li>
+            <li>Build event listener for payout status updates</li>
+            <li>Update tds_payments entity (PENDING → SUCCESS/FAILED)</li>
           </ul>
         </td>
         <td>Medium</td>
         <td style="color:#16a34a;"><strong>None to Payouts</strong></td>
       </tr>
       <tr>
-        <td><strong>Dashboard/BFF</strong></td>
+        <td><strong>Dashboard UI</strong></td>
         <td>
           <ul>
-            <li>Call <code>/v1/tds/compute</code> before payout creation</li>
-            <li>Display computed TDS breakdown in preview</li>
-            <li>Pass pre-computed values to <code>/v2/payouts</code></li>
+            <li>Add TDS form fields (category dropdown, apply_ldc toggle)</li>
+            <li>Show TDS breakdown preview before confirmation</li>
+            <li>Call Payouts API with TDS fields</li>
           </ul>
         </td>
         <td>Medium</td>
-        <td style="color:#16a34a;"><strong>None to Payouts</strong></td>
+        <td style="color:#16a34a;"><strong>Low</strong></td>
       </tr>
       <tr>
-        <td><strong>Bulk Service</strong></td>
+        <td><strong>Bulk CSV</strong></td>
         <td>
           <ul>
-            <li>Add <code>gross_amount</code>, <code>tds_category</code> columns to CSV template</li>
-            <li>Call compute per row during parsing</li>
-            <li>Generate preview file with computed values</li>
-            <li>Pass computed values when creating payouts</li>
+            <li>Add TDS columns to CSV template: <code>tds_category_id</code>, <code>apply_ldc</code></li>
+            <li>Call Payouts API with TDS fields for each row</li>
+            <li>Display enriched preview (including TDS breakdown)</li>
           </ul>
         </td>
         <td>Medium</td>
-        <td style="color:#16a34a;"><strong>None to Payouts</strong></td>
+        <td style="color:#16a34a;"><strong>Low</strong></td>
       </tr>
     </tbody>
   </table>
@@ -1875,88 +1886,92 @@ func (c Core) ProcessTdsForPayout(ctx context.Context, payout *Payout, oldStatus
 
   <h2 id="api-contracts">7. API Contracts</h2>
 
-  <h3>7.1 Compute TDS API (Tax-Compliance)</h3>
+  <h3>7.1 TDS Enrichment API (Tax-Compliance - Internal)</h3>
 
-  <p><span class="tag tag-post">POST</span> <code>/v1/tds/compute</code></p>
+  <p><span class="tag tag-post">POST</span> <code>/internal/tds/enrich</code></p>
+
+  <div class="info">
+    <h4>Internal Endpoint for Payouts Service</h4>
+    <p>This endpoint is called by Payouts service when TDS fields are present in payout request. It computes TDS, creates tds_payments entity, and returns enriched data.</p>
+  </div>
 
   <h4>Request</h4>
   <pre><code>{
-  "deduction_date": 1231432,
-  "category": "194J",
-  "vendor_payment_amount": 500000,
-  "source": "BB+",
-  "is_ldc_applicable": false,
-  "contact_id": "aksjdhask",
-  "merchant_id": "ajsdakd"
+  "contact_id": "cont_xyz123",
+  "gross_amount": 1000000,
+  "category_id": "194J",
+  "apply_ldc": false
 }</code></pre>
 
   <h4>Request Fields</h4>
   <table>
     <thead>
-      <tr><th>Field</th><th>Description</th></tr>
+      <tr><th>Field</th><th>Type</th><th>Description</th></tr>
     </thead>
     <tbody>
-      <tr><td><code>deduction_date</code></td><td>Date on which merchant has made a transaction. In payroll's case it can be transaction date or payroll month.</td></tr>
-      <tr><td><code>vendor_payment_amount</code></td><td>Gross amount (paise) entered by merchant; amount against which TDS is calculated. TDS = gross × rate.</td></tr>
-      <tr><td><code>source</code></td><td>Payroll / BB+</td></tr>
-      <tr><td><code>category</code></td><td>Decides at which rate TDS will be deducted.</td></tr>
-      <tr><td><code>is_ldc_applicable</code></td><td>Lower deduction of TDS will be determined.</td></tr>
-      <tr><td><code>contact_id</code></td><td>Needed for LDC computation.</td></tr>
-      <tr><td><code>merchant_id</code></td><td>Needed for LDC computation.</td></tr>
+      <tr><td><code>contact_id</code></td><td>string</td><td>Contact ID for PAN extraction and LDC lookup</td></tr>
+      <tr><td><code>gross_amount</code></td><td>integer</td><td>Gross payout amount in paise (before TDS deduction)</td></tr>
+      <tr><td><code>category_id</code></td><td>string</td><td>TDS category (e.g., "194J", "194C") - determines deduction rate</td></tr>
+      <tr><td><code>apply_ldc</code></td><td>boolean</td><td>Whether to apply Lower Deduction Certificate if available</td></tr>
     </tbody>
   </table>
 
   <h4>Response</h4>
   <pre><code>{
-  "status": "success",
-  "ComputeNonSalaryTdsData": {
-    "deduction_date": "2025-01-01",
-    "major_head": 200,
-    "minor_head": 300,
-    "category": "194J",
-    "basic_tax_amount": 40000.00,
-    "interest": 1500.00,
-    "surcharge": 5000.00,
-    "cess": 2500.00,
-    "penalty": 1000.00,
-    "vendor_payment_amount": 500000,
-    "total_tds_amount": 50000.00,
-    "is_ldc_valid": false,
-    "rate_tds_deducted": 1000
-  },
-  "error": ""
+  "net_amount": 900000,
+  "tds_amount": 100000,
+  "rate": 10.0,
+  "ldc_applied": false,
+  "tds_payment_id": "tdsp_xyz789"
 }</code></pre>
 
-  <div class="info">
-    <h4>UI Display: Rate is in Basis Points</h4>
-    <p><code>rate_tds_deducted</code> is stored in <strong>basis points</strong> (1 bp = 0.01%). To show the correct percentage:</p>
-    <pre><code>display_percentage = rate_tds_deducted ÷ 100
+  <h4>Response Fields</h4>
+  <table>
+    <thead>
+      <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>net_amount</code></td><td>integer</td><td>Amount to transfer to vendor after TDS deduction (in paise). Payouts uses this for payout creation.</td></tr>
+      <tr><td><code>tds_amount</code></td><td>integer</td><td>Total TDS deducted (in paise). Stored in payout metadata.</td></tr>
+      <tr><td><code>rate</code></td><td>float</td><td>TDS rate used for calculation (as percentage, e.g., 10.0 means 10%)</td></tr>
+      <tr><td><code>ldc_applied</code></td><td>boolean</td><td>Whether Lower Deduction Certificate was applied</td></tr>
+      <tr><td><code>tds_payment_id</code></td><td>string</td><td>ID of tds_payments entity created during enrichment. Stored in payout metadata; linked after payout creation.</td></tr>
+    </tbody>
+  </table>
 
-Example: rate_tds_deducted = 1000 → display "10%" (not "1000%")</code></pre>
-    <p>Do <strong>not</strong> display the raw value as percentage; the UI must divide by 100.</p>
+  <div class="info">
+    <h4>Entity Created During Enrichment</h4>
+    <p>
+      The enrichment call creates a <code>tds_payments</code> entity with status <code>PENDING</code>.
+      After payout creation succeeds, the entity is updated with payout_id and status changes to <code>SUCCESS</code> or <code>FAILED</code> based on payout status events.
+    </p>
   </div>
 
   <div class="info">
-    <h4>Amount Calculation</h4>
-    <p><code>total_tds_amount</code> is the <strong>sum</strong> of all components:</p>
-    <pre><code>total_tds_amount = basic_tax_amount + surcharge + cess + interest + penalty
+    <h4>Amount Relationship</h4>
+    <pre><code>net_amount = gross_amount - tds_amount
+tds_amount = gross_amount × (rate / 100)
 
-Example: 40000 + 5000 + 2500 + 1500 + 1000 = 50000</code></pre>
-    <p>Net payout = gross − total_tds_amount. Gross never increases.</p>
+Example:
+gross_amount = 1,000,000 paise (₹10,000)
+rate = 10.0%
+tds_amount = 100,000 paise (₹1,000)
+net_amount = 900,000 paise (₹9,000)</code></pre>
   </div>
 
   <hr>
 
-  <h3>7.2 Approach 1: Create Payout with TDS Compute Inputs</h3>
+  <h3>7.2 Create Payout with Optional TDS Fields (Enrichment Hook Pattern)</h3>
 
   <p><span class="tag tag-post">POST</span> <code>/v1/payouts</code></p>
 
   <div class="info" style="margin-bottom: 12px;">
-    <h4>Key Change: TDS field carries compute inputs, not pre-computed values</h4>
+    <h4>Enrichment Hook Pattern: Optional TDS Fields Trigger Internal Enrichment</h4>
     <p>
-      The <code>tds</code> object in the request mirrors the inputs to <code>POST /v1/tds/compute</code>.
-      Payouts calls Tax-Compliance compute internally, derives the net payout amount, and stores both the raw inputs and the computed result in <code>payout_details.additional_info</code>.
-      <code>deduction_date</code> is auto-generated by Payouts at the time of the internal compute call.
+      If <code>tds_category_id</code> is present in the request, Payouts calls Tax-Compliance enrichment endpoint
+      (<code>/internal/tds/enrich</code>) to compute TDS. The enrichment response provides <code>net_amount</code> and
+      <code>tds_payment_id</code>. Payouts creates the payout with <code>net_amount</code> and stores TDS metadata.
+      If TDS fields are absent, normal payout creation proceeds (backward compatible).
     </p>
   </div>
 
@@ -1964,6 +1979,7 @@ Example: 40000 + 5000 + 2500 + 1500 + 1000 = 50000</code></pre>
   <pre><code>{
   "account_number": "7878780080316316",
   "fund_account_id": "fa_Abc123xyz",
+  "amount": 1000000,                      // GROSS amount (before TDS) when TDS fields present
   "currency": "INR",
   "mode": "NEFT",
   "purpose": "vendor_bill",
@@ -1972,34 +1988,48 @@ Example: 40000 + 5000 + 2500 + 1500 + 1000 = 50000</code></pre>
   "notes": {
     "invoice_id": "INV-2024-001"
   },
-  "tds": {
-    "deduction_date": 1231432,           // auto-generated in code at call time to compliance
-    "category": "194J",                  // user selection
-    "vendor_payment_amount": 1000000,    // user-entered gross amount
-    "source": "BB+",                     // indicates which screen / channel
-    "is_ldc_applicable": false,          // user selected
-    "contact_id": "cont_xyz123",         // contact selected for payout
-    "merchant_id": "ajsdakd"             // who initiated the payout
-  }
-  // Note: payout.amount (net) is NOT provided by caller — Payouts derives it internally
-  // Net = vendor_payment_amount − total_tds_amount (from compute response)
+
+  // Optional TDS fields - triggers enrichment hook if present
+  "contact_id": "cont_xyz123",            // Required for TDS - used to extract PAN
+  "tds_category_id": "194J",              // If present, triggers enrichment
+  "apply_ldc": false                      // Whether to apply LDC if available
 }</code></pre>
+
+  <div class="info">
+    <h4>Enrichment Flow (Internal - if TDS fields present)</h4>
+    <ol>
+      <li>Payouts validates request and detects <code>tds_category_id</code> field</li>
+      <li>Payouts calls <code>POST /internal/tds/enrich</code> with: {contact_id, gross_amount: amount, category_id, apply_ldc}</li>
+      <li>Tax-Compliance computes TDS, creates tds_payments entity (PENDING), returns enriched data</li>
+      <li>Payouts <strong>overrides</strong> amount with <code>net_amount</code> from enrichment response</li>
+      <li>Payouts creates payout with net_amount and stores metadata: {tds_payment_id, tds_amount, rate}</li>
+    </ol>
+  </div>
 
   <h4>Response</h4>
   <pre><code>{
   "id": "pout_Abc123xyz",
   "entity": "payout",
-  "amount": 900000,                      // Net amount (derived by Payouts: gross − TDS)
+  "amount": 900000,                      // Net amount (after TDS deduction)
   "currency": "INR",
   "status": "created",
-  "tds": {
-    "category": "194J",
-    "vendor_payment_amount": 1000000,    // Gross (as provided)
-    "total_tds_amount": 100000,          // Computed TDS amount
-    "rate_tds_deducted": 1000            // 10% in basis points
+  "metadata": {
+    "tds_payment_id": "tdsp_xyz789",     // Link to tds_payments entity
+    "tds_amount": 100000,                 // TDS deducted (paise)
+    "tds_rate": 10.0,                     // Rate used (percentage)
+    "tds_category": "194J",               // Category used
+    "gross_amount": 1000000               // Original amount before TDS
   },
   "created_at": 1708099200
 }</code></pre>
+
+  <div class="info">
+    <h4>Metadata Contains TDS Details</h4>
+    <p>
+      All TDS-related information is stored in payout <code>metadata</code> object. The <code>tds_payment_id</code>
+      links to the tds_payments entity in Tax-Compliance. The entity status is updated asynchronously via payout status events.
+    </p>
+  </div>
 
   <h3>7.3 Approach 2: Tax-Compliance Orchestrated</h3>
 
@@ -2524,24 +2554,26 @@ flowchart TB
 
   <hr>
 
-  <h2 id="code-references">11. Codebase Analysis &amp; Implementation Plan (Approach 3 — Pre-Compute Pattern)</h2>
+  <h2 id="code-references">11. Codebase Analysis &amp; Implementation Plan (Approach 1 — Enrichment Hook Pattern)</h2>
 
   <p class="muted">
-    Detailed implementation plan for the <strong>recommended Pre-Compute Pattern</strong>.
+    Detailed implementation plan for the <strong>recommended Enrichment Hook Pattern</strong>.
     This section maps the minimal changes required in the Payouts service.
   </p>
 
   <div class="recommendation">
-    <h4>Key Difference from Approach 1</h4>
+    <h4>Key Characteristics of Enrichment Hook</h4>
     <p>
-      In Approach 3, Payouts does <strong>NOT</strong> call Tax-Compliance compute. The BFF/Dashboard
-      calls compute first and passes pre-computed values to Payouts. This eliminates:
+      In Approach 1 (Enrichment Hook), Payouts accepts optional TDS fields and makes a lightweight
+      synchronous call (~50-100ms) to Tax-Compliance enrichment endpoint if TDS fields are present.
+      Key implementation points:
     </p>
     <ul>
-      <li>S2S client code</li>
-      <li>Amount mutation (gross → net)</li>
-      <li>Complex error handling for compute failures</li>
-      <li>Tax-Compliance dependency in payout creation path</li>
+      <li>~20 LOC enrichment hook before payout creation</li>
+      <li>Feature-flagged for gradual rollout</li>
+      <li>Timeout and circuit breaker for resilience</li>
+      <li>Zero impact on non-TDS payouts</li>
+      <li>No domain leak - Payouts doesn't own TDS computation logic</li>
     </ul>
   </div>
 
