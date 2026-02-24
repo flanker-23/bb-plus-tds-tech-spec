@@ -2521,14 +2521,14 @@ flowchart TB
   <h3>10.6 Recommendation for Bulk Payouts</h3>
 
   <div class="recommendation">
-    <h4>Approach 3 (Pre-Compute Pattern) — Best for Bulk</h4>
-    <p>For bulk payouts, Approach 3 is the simplest and most efficient:</p>
+    <h4>Approach 1 (Enrichment Hook Pattern) — Recommended for Bulk</h4>
+    <p>For bulk payouts, Approach 1 (Enrichment Hook) works efficiently:</p>
     <ul>
-      <li><strong>Compute per row upfront:</strong> Dashboard calls Tax-Compliance compute for each row during CSV parsing</li>
-      <li><strong>Generate preview file:</strong> User reviews computed TDS breakdown before confirming</li>
-      <li><strong>Standard payout creation:</strong> Each row creates a payout with pre-computed TDS values</li>
-      <li><strong>No S2S per row at payout time:</strong> All compute done upfront, not during batch processing</li>
-      <li><strong>Same Payouts flow:</strong> Individual payouts follow the standard flow</li>
+      <li><strong>Enrichment per row:</strong> For each CSV row, Payouts API called with TDS fields; enrichment hook triggers</li>
+      <li><strong>Preview before processing:</strong> UI shows TDS breakdown for all rows before confirming batch</li>
+      <li><strong>Automatic TDS computation:</strong> Each payout creation triggers enrichment (~50-100ms per row)</li>
+      <li><strong>Consistent flow:</strong> Same unified approach as single payouts and API payouts</li>
+      <li><strong>Parallel processing:</strong> Rows can be processed in parallel for efficiency</li>
     </ul>
     <p><strong>Bulk Flow with Pre-Compute:</strong></p>
     <ol>
