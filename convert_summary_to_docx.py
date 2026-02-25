@@ -33,7 +33,7 @@ except ImportError:
     sys.exit(1)
 
 try:
-    from bs4 import BeautifulSoup, NavigableString, Tag
+    from bs4 import BeautifulSoup, NavigableString, Tag, Comment
 except ImportError:
     print("beautifulsoup4 not found. Install: pip install beautifulsoup4")
     sys.exit(1)
@@ -144,9 +144,9 @@ def add_paragraph_border(para, hex_color: str):
     left.set(qn("w:color"), RAZORPAY_BLUE)
     borders.append(left)
     pPr.append(borders)
-    # Left indent
+    # No indent - keep text flush with border
     ind = OxmlElement("w:ind")
-    ind.set(qn("w:left"), "120")
+    ind.set(qn("w:left"), "0")
     pPr.append(ind)
 
 
@@ -217,21 +217,11 @@ def add_hyperlink(paragraph, url, text, bold=False, italic=False, size_pt=11):
 
 
 def add_horizontal_rule(doc):
-    """Add a subtle horizontal line as section separator."""
+    """Add whitespace as section separator (no visible line)."""
     para = doc.add_paragraph()
     para.paragraph_format.space_before = Pt(12)
     para.paragraph_format.space_after = Pt(12)
-
-    # Add bottom border to create horizontal line
-    pPr = para._p.get_or_add_pPr()
-    borders = OxmlElement("w:pBdr")
-    bottom = OxmlElement("w:bottom")
-    bottom.set(qn("w:val"), "single")
-    bottom.set(qn("w:sz"), "6")  # 0.75pt line
-    bottom.set(qn("w:space"), "1")
-    bottom.set(qn("w:color"), "CCCCCC")  # Light gray
-    borders.append(bottom)
-    pPr.append(borders)
+    # Just whitespace - no visible separator line
 
 
 def add_toc_field(doc):
@@ -317,6 +307,10 @@ class HeadingNumberer:
 
 def process_element(element, doc, numberer):
     """Process HTML elements and convert to DOCX."""
+    # Skip HTML comments
+    if isinstance(element, Comment):
+        return
+
     if isinstance(element, NavigableString):
         text = str(element).strip()
         if text:
@@ -372,6 +366,9 @@ def process_element(element, doc, numberer):
         para = doc.add_paragraph()
         para.paragraph_format.space_after = Pt(8)
         para.paragraph_format.line_spacing = 1.15
+        para.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT  # Explicit left alignment
+        para.paragraph_format.left_indent = Pt(0)  # No left indent
+        para.paragraph_format.first_line_indent = Pt(0)  # No first line indent
 
         for child in element.children:
             add_inline(para, child)
@@ -390,42 +387,105 @@ def process_element(element, doc, numberer):
             for child in element.children:
                 if isinstance(child, Tag) and child.name in ("h3", "h4"):
                     para = doc.add_paragraph()
+                    para.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
+                    para.paragraph_format.left_indent = Pt(0)
+                    para.paragraph_format.first_line_indent = Pt(0)
                     for c in child.children:
                         add_inline(para, c, base_size=12, bold=True)
                     add_paragraph_border(para, SUCCESS_BG)
                 elif isinstance(child, Tag) and child.name == "p":
                     para = doc.add_paragraph()
+                    para.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
+                    para.paragraph_format.left_indent = Pt(0)
+                    para.paragraph_format.first_line_indent = Pt(0)
                     for c in child.children:
                         add_inline(para, c)
                     add_paragraph_border(para, SUCCESS_BG)
+                elif isinstance(child, Tag) and child.name in ("ol", "ul"):
+                    # Handle lists inside recommendation boxes
+                    for li in child.find_all("li", recursive=False):
+                        para = doc.add_paragraph(style="List Bullet" if child.name == "ul" else "List Number")
+                        para.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
+                        para.paragraph_format.left_indent = Pt(36)
+                        para.paragraph_format.first_line_indent = Pt(-18)
+                        for li_child in li.children:
+                            if isinstance(li_child, Tag) and li_child.name in ("ul", "ol"):
+                                continue
+                            add_inline(para, li_child)
+                        add_paragraph_border(para, SUCCESS_BG)
+                        for run in para.runs:
+                            if not run.font.name:
+                                run.font.name = "Arial"
             return
 
         if "warning" in classes:
             for child in element.children:
                 if isinstance(child, Tag) and child.name in ("h3", "h4"):
                     para = doc.add_paragraph()
+                    para.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
+                    para.paragraph_format.left_indent = Pt(0)
+                    para.paragraph_format.first_line_indent = Pt(0)
                     for c in child.children:
                         add_inline(para, c, base_size=12, bold=True)
                     add_paragraph_border(para, WARNING_BG)
                 elif isinstance(child, Tag) and child.name == "p":
                     para = doc.add_paragraph()
+                    para.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
+                    para.paragraph_format.left_indent = Pt(0)
+                    para.paragraph_format.first_line_indent = Pt(0)
                     for c in child.children:
                         add_inline(para, c)
                     add_paragraph_border(para, WARNING_BG)
+                elif isinstance(child, Tag) and child.name in ("ol", "ul"):
+                    # Handle lists inside warning boxes
+                    for li in child.find_all("li", recursive=False):
+                        para = doc.add_paragraph(style="List Bullet" if child.name == "ul" else "List Number")
+                        para.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
+                        para.paragraph_format.left_indent = Pt(36)
+                        para.paragraph_format.first_line_indent = Pt(-18)
+                        for li_child in li.children:
+                            if isinstance(li_child, Tag) and li_child.name in ("ul", "ol"):
+                                continue
+                            add_inline(para, li_child)
+                        add_paragraph_border(para, WARNING_BG)
+                        for run in para.runs:
+                            if not run.font.name:
+                                run.font.name = "Arial"
             return
 
         if "info" in classes:
             for child in element.children:
                 if isinstance(child, Tag) and child.name in ("h3", "h4"):
                     para = doc.add_paragraph()
+                    para.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
+                    para.paragraph_format.left_indent = Pt(0)
+                    para.paragraph_format.first_line_indent = Pt(0)
                     for c in child.children:
                         add_inline(para, c, base_size=12, bold=True)
                     add_paragraph_border(para, INFO_BG)
                 elif isinstance(child, Tag) and child.name == "p":
                     para = doc.add_paragraph()
+                    para.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
+                    para.paragraph_format.left_indent = Pt(0)
+                    para.paragraph_format.first_line_indent = Pt(0)
                     for c in child.children:
                         add_inline(para, c)
                     add_paragraph_border(para, INFO_BG)
+                elif isinstance(child, Tag) and child.name in ("ol", "ul"):
+                    # Handle lists inside info boxes
+                    for li in child.find_all("li", recursive=False):
+                        para = doc.add_paragraph(style="List Bullet" if child.name == "ul" else "List Number")
+                        para.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
+                        para.paragraph_format.left_indent = Pt(36)  # Standard list indent
+                        para.paragraph_format.first_line_indent = Pt(-18)  # Hanging indent for bullet/number
+                        for li_child in li.children:
+                            if isinstance(li_child, Tag) and li_child.name in ("ul", "ol"):
+                                continue
+                            add_inline(para, li_child)
+                        add_paragraph_border(para, INFO_BG)
+                        for run in para.runs:
+                            if not run.font.name:
+                                run.font.name = "Arial"
             return
 
         # Process children of other divs
